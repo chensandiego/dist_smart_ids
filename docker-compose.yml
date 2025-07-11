@@ -1,0 +1,44 @@
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: smart_ids
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  elasticsearch:
+    image: elasticsearch:7.17.0
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+
+  aggregator:
+    build: .
+    command: python aggregator.py
+    depends_on:
+      - postgres
+      - rabbitmq
+      - elasticsearch
+    environment:
+      - DB_HOST=postgres
+      - RABBITMQ_HOST=rabbitmq
+      - ELASTICSEARCH_HOST=elasticsearch
+
+  sensor:
+    build: .
+    command: python ids.py --mode live --interface eth0
+    depends_on:
+      - rabbitmq
+    network_mode: host

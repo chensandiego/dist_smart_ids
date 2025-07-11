@@ -1,0 +1,2 @@
+alert tcp any any -> any 4444 (msg:"Possible reverse shell"; content:"shellcode"; sid:1000001;)
+alert tcp any any -> any 23 (msg:"Telnet access attempt"; content:"login:"; sid:1000002;)

@@ -1,0 +1,9 @@
+scapy
+scikit-learn
+joblib
+flask
+requests
+python-whois
+elasticsearch
+pika
+psycopg2-binary
