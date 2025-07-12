@@ -1,42 +1,21 @@
-from scapy.all import IP, wrpcap
+from scapy.all import IP
 from sklearn.ensemble import IsolationForest
 from joblib import load
 import time
 import json
-import re
 import pika
 from config import RABBITMQ_HOST, RABBITMQ_QUEUE
 from enrichment import get_whois_info
+from behavior_model import behavior_model
 
 model = load("model/isolation_forest_model.joblib")
-
-def load_suricata_signatures(rule_path="rules/suricata.rules"):
-    signatures = []
-    with open(rule_path, 'r') as f:
-        for line in f:
-            if line.startswith('alert'):
-                try:
-                    msg = re.findall(r'msg:"([^"]+)"', line)[0]
-                    pattern = re.findall(r'content:"([^"]+)"', line)[0]
-                    signatures.append({'msg': msg, 'pattern': pattern})
-                except:
-                    continue
-    return signatures
-
-suricata_signatures = load_suricata_signatures()
+SIMILARITY_THRESHOLD = 0.5  # Define a threshold for similarity
 
 def extract_features(pkt):
     if IP in pkt:
         ip_layer = pkt[IP]
         return [len(pkt), ip_layer.ttl, ip_layer.proto, ip_layer.len]
     return [0, 0, 0, 0]
-
-def match_suricata_signature(pkt):
-    raw = bytes(pkt).decode(errors="ignore")
-    for sig in suricata_signatures:
-        if sig['pattern'] in raw:
-            return sig['msg']
-    return None
 
 def raise_alert(pkt, reason):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -74,11 +53,17 @@ def raise_alert(pkt, reason):
 def packet_handler(pkt):
     if IP not in pkt:
         return
-    msg = match_suricata_signature(pkt)
-    if msg:
-        raise_alert(pkt, f"簽章比對：{msg}")
+
+    # Behavior-based detection
+    packet_content = bytes(pkt).decode(errors='ignore')
+    similarity_score = behavior_model.get_similarity(packet_content)
+    
+    if similarity_score > SIMILARITY_THRESHOLD:
+        reason = f"可疑行為偵測 (相似度: {similarity_score:.2f})"
+        raise_alert(pkt, reason)
         return
 
+    # Anomaly-based detection
     features = extract_features(pkt)
     prediction = model.predict([features])
     if prediction[0] == -1:
