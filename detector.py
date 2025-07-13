@@ -23,6 +23,8 @@ def raise_alert(pkt, reason):
     dst = pkt[IP].dst if IP in pkt else "unknown"
 
     whois_info = get_whois_info(src)
+    abuseipdb_src_info = get_abuseipdb_info(src)
+    abuseipdb_dst_info = get_abuseipdb_info(dst)
 
     alert = {
         "time": timestamp,
@@ -30,6 +32,8 @@ def raise_alert(pkt, reason):
         "dst": dst,
         "reason": reason,
         "whois": whois_info,
+        "abuseipdb_src": abuseipdb_src_info,
+        "abuseipdb_dst": abuseipdb_dst_info,
         "packet": bytes(pkt).hex()  # Serialize packet for the queue
     }
 

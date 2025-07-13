@@ -2,7 +2,8 @@ import pika
 import json
 from database import insert_alert, init_db
 from notifications import send_line_notification, send_slack_notification, send_email_notification, send_to_elasticsearch, export_to_csv
-from config import RABBITMQ_HOST, RABBITMQ_QUEUE
+from config import RABBITMQ_HOST, RABBITMQ_QUEUE, BLOCKING_ENABLED
+from blocker import block_ip
 
 def process_alert(ch, method, properties, body):
     try:
@@ -22,6 +23,10 @@ def process_alert(ch, method, properties, body):
 
         # Export to CSV
         export_to_csv(alert)
+
+        # Automated IP Blocking
+        if BLOCKING_ENABLED and 'src' in alert:
+            block_ip(alert['src'])
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
         print(f"[AGGR] Successfully processed alert: {alert['reason']}")

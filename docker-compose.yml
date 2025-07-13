@@ -36,9 +36,29 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - ELASTICSEARCH_HOST=elasticsearch
 
-  sensor:
+  suricata:
     build: .
-    command: python ids.py --mode live --interface eth0
+    command: suricata -i ${NETWORK_INTERFACE:-eth0} -c /etc/suricata/suricata.yaml --set eve.outputs[0].file=/var/log/suricata/eve.json
     depends_on:
       - rabbitmq
     network_mode: host
+    volumes:
+      - ./rules:/etc/suricata/rules
+      - suricata_logs:/var/log/suricata
+
+  sensor:
+    build: .
+    command: python ids.py --mode live
+    depends_on:
+      - rabbitmq
+      - suricata
+    network_mode: host
+
+  rule_updater:
+    build: .
+    command: python update_rules.py
+    volumes:
+      - ./rules:/app/rules
+
+volumes:
+  suricata_logs:

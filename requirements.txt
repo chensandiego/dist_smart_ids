@@ -7,3 +7,4 @@ python-whois
 elasticsearch
 pika
 psycopg2-binary
+geoip2

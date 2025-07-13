@@ -1,0 +1,22 @@
+# This is a minimal Suricata YAML configuration for EVE JSON output.
+# For a full configuration, refer to the Suricata documentation.
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      # The path below is relative to the Suricata working directory.
+      # In our Docker setup, this will be /var/log/suricata/
+      # So the full path will be /var/log/suricata/eve.json
+      # This matches the path expected by suricata_alert_parser.py
+      # You can adjust this path if needed.
+      # For example, if you want to output to a different directory,
+      # make sure to update the volume mount in docker-compose.yml
+      # and the path in suricata_alert_parser.py accordingly.
+      #
+      # For more details on EVE JSON output, see:
+      # https://suricata.readthedocs.io/en/suricata-6.0.0/output/eve/eve-json-output.html
+      #
+      # For a complete suricata.yaml example, see:
+      # https://github.com/OISF/suricata/blob/master/etc/suricata.yaml.example
