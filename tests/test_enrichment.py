@@ -1,6 +1,6 @@
 
 import unittest
-from enrichment import get_whois_info
+from aggregator.enrichment import get_whois_info
 
 class TestEnrichment(unittest.TestCase):
 
