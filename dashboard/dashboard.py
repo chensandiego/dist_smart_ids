@@ -26,6 +26,8 @@ async def read_root(request: Request):
         alerts_response = requests.get(f"{AGGREGATOR_BASE_URL}/api/alerts")
         alerts_response.raise_for_status()
         alerts = alerts_response.json()
+        # Assuming the alerts now contain CVE information from the aggregator
+        # No direct change needed here, as the data is already in the 'alerts' list
     except requests.exceptions.RequestException as e:
         print(f"Error fetching alerts from aggregator: {e}")
 

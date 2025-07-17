@@ -50,6 +50,7 @@
                 <th>來源 IP</th>
                 <th>目標 IP</th>
                 <th>警示原因</th>
+                <th>CVE</th>
             </tr>
         </thead>
         <tbody>
@@ -59,10 +60,11 @@
                 <td>{{ alert[1] }}</td>
                 <td>{{ alert[2] }}</td>
                 <td>{{ alert[3] }}</td>
+                <td>{{ alert[4] if alert[4] else 'N/A' }}</td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="4">No alerts yet.</td>
+                <td colspan="5">No alerts yet.</td>
             </tr>
             {% endfor %}
         </tbody>

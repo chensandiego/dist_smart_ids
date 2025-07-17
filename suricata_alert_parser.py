@@ -1,9 +1,20 @@
 import json
 import time
 import pika
+import re
 from config import RABBITMQ_HOST, RABBITMQ_QUEUE
 import os
 from enrichment import get_abuseipdb_info, get_geolocation, get_service_name, get_passive_dns_info
+
+def extract_cve_info(signature):
+    """
+    Extracts CVE information from the alert signature using regex.
+    """
+    cve_pattern = re.compile(r"(CVE-\d{4}-\d{4,7})")
+    match = cve_pattern.search(signature)
+    if match:
+        return match.group(1)
+    return None
 
 def send_alert_to_rabbitmq(alert_data):
     try:
@@ -41,6 +52,12 @@ def main():
         try:
             event = json.loads(line.strip())
             if event.get("event_type") == "alert":
+                # Extract CVE information
+                signature = event.get("alert", {}).get("signature", "")
+                cve_id = extract_cve_info(signature)
+                if cve_id:
+                    event["cve"] = cve_id
+
                 # Enrich Suricata alerts with AbuseIPDB info
                 src_ip = event.get("src_ip")
                 dest_ip = event.get("dest_ip")

@@ -11,7 +11,8 @@ def process_alert(ch, method, properties, body):
         print(f"[AGGR] Received alert: {alert['reason']}")
 
         # Insert into database
-        insert_alert(alert['src'], alert['dst'], alert['reason'])
+        cve = alert.get('cve')
+        insert_alert(alert['src'], alert['dst'], alert['reason'], cve)
 
         # Send notifications
         send_line_notification(alert)

@@ -21,20 +21,21 @@ def init_db():
         timestamp TIMESTAMP NOT NULL,
         src_ip VARCHAR(255) NOT NULL,
         dst_ip VARCHAR(255) NOT NULL,
-        reason TEXT NOT NULL
+        reason TEXT NOT NULL,
+        cve VARCHAR(255)
     );
     """)
     conn.commit()
     cur.close()
     conn.close()
 
-def insert_alert(src, dst, reason):
+def insert_alert(src, dst, reason, cve=None):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-    INSERT INTO alerts (timestamp, src_ip, dst_ip, reason)
-    VALUES (NOW(), %s, %s, %s);
-    """, (src, dst, reason))
+    INSERT INTO alerts (timestamp, src_ip, dst_ip, reason, cve)
+    VALUES (NOW(), %s, %s, %s, %s);
+    """, (src, dst, reason, cve))
     conn.commit()
     cur.close()
     conn.close()
@@ -42,7 +43,7 @@ def insert_alert(src, dst, reason):
 def get_alerts():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT timestamp, src_ip, dst_ip, reason FROM alerts ORDER BY timestamp DESC")
+    cur.execute("SELECT timestamp, src_ip, dst_ip, reason, cve FROM alerts ORDER BY timestamp DESC")
     alerts = cur.fetchall()
     cur.close()
     conn.close()

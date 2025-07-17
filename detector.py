@@ -17,7 +17,7 @@ def extract_features(pkt):
         return [len(pkt), ip_layer.ttl, ip_layer.proto, ip_layer.len]
     return [0, 0, 0, 0]
 
-def raise_alert(pkt, reason):
+def raise_alert(pkt, reason, cve=None):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     src = pkt[IP].src if IP in pkt else "unknown"
     dst = pkt[IP].dst if IP in pkt else "unknown"
@@ -34,7 +34,8 @@ def raise_alert(pkt, reason):
         "whois": whois_info,
         "abuseipdb_src": abuseipdb_src_info,
         "abuseipdb_dst": abuseipdb_dst_info,
-        "packet": bytes(pkt).hex()  # Serialize packet for the queue
+        "packet": bytes(pkt).hex(),  # Serialize packet for the queue
+        "cve": cve
     }
 
     try:
