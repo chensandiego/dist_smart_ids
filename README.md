@@ -122,3 +122,51 @@ Then, run pytest from the project root:
 ```bash
 PYTHONPATH=. ./venv/bin/pytest
 ```
+
+## Adversary Emulation
+
+This project includes a simple adversary emulation program, `adversary_emulator.py`, designed to test the effectiveness of the IDS by simulating various attack techniques based on the MITRE ATT&CK framework.
+
+### How it Works
+
+The emulator reads a list of attack scenarios from the `emulation_scenarios.json` file and executes them in sequence. Each scenario is a Python function that crafts and sends network packets to a target using the `scapy` library.
+
+### Running the Emulator
+
+1.  **Install Dependencies:**
+
+    Ensure you have the necessary dependencies installed, including `scapy`:
+
+    ```bash
+    ./venv/bin/pip install -r requirements.txt
+    ```
+
+2.  **Run the Emulator:**
+
+    Execute the `adversary_emulator.py` script with the `emulation_scenarios.json` file as an argument:
+
+    ```bash
+    python adversary_emulator.py emulation_scenarios.json
+    ```
+
+    The emulator will log the actions it takes to the console. You can monitor the `dist_smart_ids` logs and dashboard to verify that the attacks are being detected.
+
+### Customizing Scenarios
+
+You can easily add or modify attack scenarios by editing the `emulation_scenarios.json` file. Each object in the JSON array represents a single scenario and is defined by a `technique_id` and other parameters.
+
+**Example Scenario:**
+
+```json
+{
+    "technique_id": "T1046",
+    "technique_name": "Port Scan",
+    "target": "127.0.0.1",
+    "ports": [80, 443, 22, 8080, 3389]
+}
+```
+
+To add a new attack technique, you will need to:
+
+1.  Add a new function to `adversary_emulator.py` that implements the desired attack.
+2.  Add a new scenario to `emulation_scenarios.json` that calls the new function.

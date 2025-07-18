@@ -10,3 +10,4 @@ psycopg2-binary
 geoip2
 fastapi
 uvicorn
+scapy

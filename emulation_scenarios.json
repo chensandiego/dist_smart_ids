@@ -1,0 +1,85 @@
+[
+    {
+        "technique_id": "T1046",
+        "technique_name": "Port Scan",
+        "target": "127.0.0.1",
+        "ports": [80, 443, 22, 8080, 3389, 6379, 27017, 5432, 1433]
+    },
+    {
+        "technique_id": "T1071.004",
+        "technique_name": "DNS Tunneling",
+        "target_dns_server": "8.8.8.8",
+        "domain": "exfil.example.com",
+        "data": "ThisIsSecretCreditCardData"
+    },
+    {
+        "technique_id": "T1190",
+        "technique_name": "Log4j Exploit Attempt",
+        "target": "127.0.0.1",
+        "port": 8080
+    },
+    {
+        "technique_id": "T1027",
+        "technique_name": "Obfuscated File or Information",
+        "target": "127.0.0.1",
+        "port": 443,
+        "data": "This is a secret message containing command and control instructions."
+    },
+    {
+        "technique_id": "T1571",
+        "technique_name": "Command and Control: Non-Standard Port",
+        "target": "127.0.0.1",
+        "port": 6667
+    },
+    {
+        "technique_id": "T1018",
+        "technique_name": "Remote System Discovery (Ping Sweep)",
+        "subnet": "192.168.1.0/24"
+    },
+    {
+        "technique_id": "T1057",
+        "technique_name": "Process Discovery",
+        "target": "127.0.0.1",
+        "port": 22
+    },
+    {
+        "technique_id": "T1110.001",
+        "technique_name": "Brute Force (Password Guessing)",
+        "target": "127.0.0.1",
+        "port": 22,
+        "passwords": ["root", "admin", "password", "123456", "qwerty"]
+    },
+    {
+        "technique_id": "T1041",
+        "technique_name": "Exfiltration Over C2 Channel",
+        "target": "127.0.0.1",
+        "port": 4444,
+        "data": "sensitive_user_data.zip"
+    },
+    {
+        "technique_id": "T1219",
+        "technique_name": "Remote Access Software",
+        "target": "127.0.0.1",
+        "port": 5938
+    },
+    {
+        "technique_id": "T1078",
+        "technique_name": "Valid Accounts",
+        "target": "127.0.0.1",
+        "port": 22,
+        "username": "testuser",
+        "password": "ValidPassword123!"
+    },
+    {
+        "technique_id": "T1562.001",
+        "technique_name": "Disable Security Tools",
+        "target": "127.0.0.1",
+        "port": 135
+    },
+    {
+        "technique_id": "T1049",
+        "technique_name": "System Network Connections Discovery",
+        "target": "127.0.0.1",
+        "port": 445
+    }
+]
