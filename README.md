@@ -30,6 +30,7 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 -   **Threat Intelligence Integration:** Enriches alerts with AbuseIPDB information.
 -   **Automated Response:** Can automatically block malicious IP addresses.
 -   **Anomaly Detection:** Uses machine learning (Isolation Forest) to detect unusual traffic patterns.
+-   **Ransomware Detection:** Monitors network traffic for behavioral patterns indicative of ransomware activity (e.g., high volume of file operations on network shares).
 
 ---
 
@@ -170,3 +171,56 @@ To add a new attack technique, you will need to:
 
 1.  Add a new function to `adversary_emulator.py` that implements the desired attack.
 2.  Add a new scenario to `emulation_scenarios.json` that calls the new function.
+
+## Ransomware Detection
+
+This system now includes behavioral ransomware detection, focusing on suspicious network file share activity.
+
+### How it Works
+
+The `ransomware_detector.py` module monitors SMB (Server Message Block) traffic for patterns indicative of ransomware. It tracks:
+
+-   **High Volume of File Operations:** A sudden surge in file creation, write, read, rename, or delete operations from a single source IP on network shares.
+-   **Excessive File Renames/Deletes:** A disproportionately high number of file rename or delete operations, which are common during the encryption phase of ransomware.
+
+When these activities exceed predefined thresholds within a specific time window, an alert with `cve="RANSOMWARE-BEHAVIOR"` is generated and sent to the aggregator.
+
+### Testing Ransomware Detection
+
+To test the ransomware detection, you need to simulate SMB traffic that exhibits ransomware-like behavior.
+
+1.  **Ensure all services are running:** Start your `docker-compose` services (aggregator, postgres, rabbitmq, etc.) and deploy a sensor to monitor network traffic.
+2.  **Simulate SMB traffic:** Use a tool like `smbclient` or a custom `scapy` script to generate a high volume of file operations (create, write, rename, delete) on a network share that your sensor is monitoring.
+
+    **Example (Conceptual) Scapy script for simulation:**
+
+    ```python
+    from scapy.all import *
+    import time
+
+    src_ip = "192.168.1.10" # IP of the simulated infected host
+    dst_ip = "192.168.1.20" # IP of the file server being attacked
+
+    # Simulate a series of file operations exceeding thresholds
+    for i in range(150): # More than MAX_FILE_OPERATIONS (default 100)
+        # Simulate SMB Create/Write
+        pkt_create = Ether() / IP(src=src_ip, dst=dst_ip) / TCP(sport=1024 + i, dport=445) / Raw(load=f"SMB2 CREATE file_{i}.txt")
+        sendp(pkt_create, verbose=0)
+
+        # Simulate SMB Rename
+        pkt_rename = Ether() / IP(src=src_ip, dst=dst_ip) / TCP(sport=2048 + i, dport=445) / Raw(load=f"SMB2 SET_INFO file_{i}.txt to new_file_{i}.txt")
+        sendp(pkt_rename, verbose=0)
+
+        # Simulate SMB Delete
+        pkt_delete = Ether() / IP(src=src_ip, dst=dst_ip) / TCP(sport=3072 + i, dport=445) / Raw(load=f"SMB2 DELETE new_file_{i}.txt")
+        sendp(pkt_delete, verbose=0)
+
+        time.sleep(0.01) # Small delay to simulate real-world traffic
+
+    print("SMB ransomware simulation traffic sent.")
+    ```
+
+3.  **Verify Detection:**
+    *   Check the logs of the `aggregator` service for alerts related to "Ransomware-like behavior detected."
+    *   Access the dashboard to see if new ransomware alerts are displayed.
+    *   Query the `alerts` table in your PostgreSQL database to confirm that alerts with `cve='RANSOMWARE-BEHAVIOR'` are being recorded.

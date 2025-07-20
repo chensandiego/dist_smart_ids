@@ -5,11 +5,15 @@ import time
 import json
 import pika
 from config import RABBITMQ_HOST, RABBITMQ_QUEUE
-from enrichment import get_whois_info
+from enrichment import get_whois_info, get_abuseipdb_info
 from behavior_model import behavior_model
+from ransomware_detector import monitor_smb_activity, detect_ransomware_behavior
 
 model = load("model/isolation_forest_model.joblib")
 SIMILARITY_THRESHOLD = 0.5  # Define a threshold for similarity
+
+LAST_RANSOMWARE_CHECK = time.time()
+CHECK_INTERVAL = 10 # seconds
 
 def extract_features(pkt):
     if IP in pkt:
@@ -56,8 +60,19 @@ def raise_alert(pkt, reason, cve=None):
         print(f"RabbitMQ error: {e}")
 
 def packet_handler(pkt):
+    global LAST_RANSOMWARE_CHECK
+
     if IP not in pkt:
         return
+
+    # Pass packet to ransomware detector
+    monitor_smb_activity(pkt)
+
+    # Periodically check for ransomware behavior
+    current_time = time.time()
+    if current_time - LAST_RANSOMWARE_CHECK > CHECK_INTERVAL:
+        detect_ransomware_behavior()
+        LAST_RANSOMWARE_CHECK = current_time
 
     # Behavior-based detection
     packet_content = bytes(pkt).decode(errors='ignore')

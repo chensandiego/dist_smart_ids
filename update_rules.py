@@ -56,6 +56,15 @@ def update_suricata_rules(extracted_rules_path):
                         main_rules_file.write(f"# Rules from {filename}\n")
                         main_rules_file.write(rule_file.read())
                         main_rules_file.write("\n\n")
+
+        # --- Ransomware Rule Enhancement (Future Improvement) ---
+        # To further enhance ransomware detection, consider adding specific
+        # ransomware-focused rule sources here. Examples include:
+        # 1. Custom rules tailored to known ransomware behaviors in your environment.
+        # 2. Specialized open-source ransomware rule sets (if available and compatible).
+        # Example (pseudo-code):
+        # download_and_add_ransomware_rules("https://example.com/ransomware_rules.tar.gz", main_rules_file)
+        # ---------------------------------------------------------
         
         print("[*] Suricata rules updated successfully.")
     except IOError as e:

@@ -59,7 +59,7 @@ def process_alert(ch, method, properties, body):
         print(f"[AGGR] Received alert: {alert.get('reason', 'No reason')}")
 
         # Insert into database
-        insert_alert(alert.get('src'), alert.get('dst'), alert.get('reason'))
+        insert_alert(alert.get('src'), alert.get('dst'), alert.get('reason'), alert.get('cve'))
 
         # Send notifications
         send_line_notification(alert)
