@@ -175,55 +175,62 @@ To add a new attack technique, you will need to:
 1.  Add a new function to `adversary_emulator.py` that implements the desired attack.
 2.  Add a new scenario to `emulation_scenarios.json` that calls the new function.
 
-## Ransomware Detection
+## Enhanced Ransomware Detection
 
-This system now includes behavioral ransomware detection, focusing on suspicious network file share activity.
+This system includes an advanced behavior-based ransomware detection engine that analyzes network file share activity for patterns indicative of a ransomware attack.
 
 ### How it Works
 
-The `ransomware_detector.py` module monitors SMB (Server Message Block) traffic for patterns indicative of ransomware. It tracks:
+The `ransomware_detector.py` module uses **Scapy** to perform deep packet inspection of SMB (Server Message Block) traffic, moving beyond simple payload inspection to accurately parse and analyze SMB commands. This allows for more sophisticated and reliable detection based on the following features:
 
--   **High Volume of File Operations:** A sudden surge in file creation, write, read, rename, or delete operations from a single source IP on network shares.
--   **Excessive File Renames/Deletes:** A disproportionately high number of file rename or delete operations, which are common during the encryption phase of ransomware.
+-   **High-Volume File Operations:** Detects a sudden surge in file creation, write, read, rename, or delete operations from a single source IP, which is a common indicator of automated encryption activity.
+-   **Filename Entropy Analysis:** Calculates the Shannon entropy of filenames in `CREATE` requests. Ransomware often generates random, high-entropy filenames (e.g., `kHj8dKj9LpW3qXo7.txt`) after encrypting files. The system flags activity with an average filename entropy exceeding a predefined threshold.
+-   **Suspicious File Extension Monitoring:** Tracks file extensions in `CREATE` and `RENAME` operations. An alert is triggered if a significant number of files with known ransomware extensions (e.g., `.locked`, `.crypto`, `.encrypted`) are detected.
+-   **Imbalanced Read/Write Ratio:** Monitors the ratio of file read to write operations. A high number of writes without corresponding reads can indicate that files are being overwritten with encrypted data.
 
-When these activities exceed predefined thresholds within a specific time window, an alert with `cve="RANSOMWARE-BEHAVIOR"` is generated and sent to the aggregator.
+When this combination of suspicious activities is detected, an alert with `cve="RANSOMWARE-BEHAVIOR-ENHANCED"` is generated and sent to the aggregator for immediate attention.
 
-### Testing Ransomware Detection
+### Testing the Enhanced Detection
 
-To test the ransomware detection, you need to simulate SMB traffic that exhibits ransomware-like behavior.
+To validate the effectiveness of the enhanced ransomware detection, you can use the provided unit tests or create custom Scapy scripts to simulate ransomware-like behavior.
 
-1.  **Ensure all services are running:** Start your `docker-compose` services (aggregator, postgres, rabbitmq, etc.) and deploy a sensor to monitor network traffic.
-2.  **Simulate SMB traffic:** Use a tool like `smbclient` or a custom `scapy` script to generate a high volume of file operations (create, write, rename, delete) on a network share that your sensor is monitoring.
+1.  **Run the Unit Tests:**
 
-    **Example (Conceptual) Scapy script for simulation:**
+    The `tests/test_ransomware_detector.py` file contains a suite of tests that simulate various ransomware scenarios, including high-entropy filenames, suspicious extensions, and imbalanced read/write ratios. These tests mock the alerting function to avoid generating network traffic.
+
+    ```bash
+    PYTHONPATH=. ./venv/bin/pytest tests/test_ransomware_detector.py
+    ```
+
+2.  **Simulate with a Custom Scapy Script:**
+
+    You can create a Python script using Scapy to generate real network traffic that mimics a ransomware attack. This allows you to test the full detection pipeline, from the sensor to the dashboard.
+
+    **Example Scapy script for simulation:**
 
     ```python
     from scapy.all import *
     import time
 
-    src_ip = "192.168.1.10" # IP of the simulated infected host
-    dst_ip = "192.168.1.20" # IP of the file server being attacked
+    src_ip = "192.168.1.10"  # IP of the simulated infected host
+    dst_ip = "192.168.1.20"  # IP of the file server
 
-    # Simulate a series of file operations exceeding thresholds
-    for i in range(150): # More than MAX_FILE_OPERATIONS (default 100)
-        # Simulate SMB Create/Write
-        pkt_create = Ether() / IP(src=src_ip, dst=dst_ip) / TCP(sport=1024 + i, dport=445) / Raw(load=f"SMB2 CREATE file_{i}.txt")
-        sendp(pkt_create, verbose=0)
+    # Simulate creating a file with a high-entropy name
+    high_entropy_filename = "z5H8dKj9LpW3qXo7.txt"
+    pkt_entropy = IP(src=src_ip, dst=dst_ip) / TCP(dport=445) / SMB2_Header(Command=0x05) / SMB2_Create_Request(Name=high_entropy_filename)
+    send(pkt_entropy)
 
-        # Simulate SMB Rename
-        pkt_rename = Ether() / IP(src=src_ip, dst=dst_ip) / TCP(sport=2048 + i, dport=445) / Raw(load=f"SMB2 SET_INFO file_{i}.txt to new_file_{i}.txt")
-        sendp(pkt_rename, verbose=0)
+    time.sleep(1)
 
-        # Simulate SMB Delete
-        pkt_delete = Ether() / IP(src=src_ip, dst=dst_ip) / TCP(sport=3072 + i, dport=445) / Raw(load=f"SMB2 DELETE new_file_{i}.txt")
-        sendp(pkt_delete, verbose=0)
+    # Simulate creating a file with a suspicious extension
+    suspicious_filename = "important_document.locked"
+    pkt_extension = IP(src=src_ip, dst=dst_ip) / TCP(dport=445) / SMB2_Header(Command=0x05) / SMB2_Create_Request(Name=suspicious_filename)
+    send(pkt_extension)
 
-        time.sleep(0.01) # Small delay to simulate real-world traffic
-
-    print("SMB ransomware simulation traffic sent.")
+    print("Enhanced ransomware simulation traffic sent.")
     ```
 
 3.  **Verify Detection:**
-    *   Check the logs of the `aggregator` service for alerts related to "Ransomware-like behavior detected."
-    *   Access the dashboard to see if new ransomware alerts are displayed.
-    *   Query the `alerts` table in your PostgreSQL database to confirm that alerts with `cve='RANSOMWARE-BEHAVIOR'` are being recorded.
+
+    -   Check the logs of the `aggregator` service for alerts related to "Ransomware-like behavior detected."
+    -   Access the dashboard to see if new ransomware alerts with the `cve="RANSOMWARE-BEHAVIOR-ENHANCED"` are displayed.
