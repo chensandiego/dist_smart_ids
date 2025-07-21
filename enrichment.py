@@ -1,19 +1,25 @@
 import whois
 import requests
 import geoip2.database
+import logging
+from typing import Dict, Any, Optional
+
 from config import ABUSEIPDB_API_KEY, GEOLITE2_CITY_DB, PASSIVE_DNS_API_KEY
 
-def get_whois_info(ip_address):
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def get_whois_info(ip_address: str) -> Optional[Any]:
     try:
         w = whois.whois(ip_address)
+        logging.info(f"Whois lookup successful for {ip_address}")
         return w
     except Exception as e:
-        print(f"Whois lookup error: {e}")
+        logging.error(f"Whois lookup error for {ip_address}: {e}")
         return None
 
-def get_abuseipdb_info(ip_address):
+def get_abuseipdb_info(ip_address: str) -> Optional[Dict[str, Any]]:
     if not ABUSEIPDB_API_KEY:
-        print("ABUSEIPDB_API_KEY not set in config.py. Skipping AbuseIPDB lookup.")
+        logging.warning("ABUSEIPDB_API_KEY not set in config.py. Skipping AbuseIPDB lookup.")
         return None
 
     url = f"https://api.abuseipdb.com/api/v2/check?ipAddress={ip_address}&maxAgeInDays=90&verbose=true"
@@ -25,15 +31,20 @@ def get_abuseipdb_info(ip_address):
         response = requests.get(url, headers=headers)
         response.raise_for_status()  # Raise an exception for HTTP errors
         data = response.json()
+        logging.info(f"AbuseIPDB lookup successful for {ip_address}")
         return data.get('data')
     except requests.exceptions.RequestException as e:
-        print(f"AbuseIPDB lookup error: {e}")
+        logging.error(f"AbuseIPDB lookup error for {ip_address}: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"Unexpected error during AbuseIPDB lookup for {ip_address}: {e}", exc_info=True)
         return None
 
-def get_geolocation(ip_address):
+def get_geolocation(ip_address: str) -> Optional[Dict[str, Any]]:
     try:
         with geoip2.database.Reader(GEOLITE2_CITY_DB) as reader:
             response = reader.city(ip_address)
+            logging.info(f"Geolocation lookup successful for {ip_address}")
             return {
                 "country": response.country.name,
                 "city": response.city.name,
@@ -41,15 +52,18 @@ def get_geolocation(ip_address):
                 "longitude": response.location.longitude
             }
     except geoip2.errors.AddressNotFoundError:
-        # print(f"Geolocation not found for IP: {ip_address}")
+        logging.info(f"Geolocation not found for IP: {ip_address}")
+        return None
+    except FileNotFoundError:
+        logging.error(f"GeoLite2 City database not found at {GEOLITE2_CITY_DB}. Please download it from MaxMind.")
         return None
     except Exception as e:
-        print(f"Geolocation lookup error: {e}")
+        logging.error(f"Geolocation lookup error for {ip_address}: {e}", exc_info=True)
         return None
 
-def get_passive_dns_info(query):
+def get_passive_dns_info(query: str) -> Optional[Dict[str, Any]]:
     if not PASSIVE_DNS_API_KEY:
-        print("PASSIVE_DNS_API_KEY not set in config.py. Skipping Passive DNS lookup.")
+        logging.warning("PASSIVE_DNS_API_KEY not set in config.py. Skipping Passive DNS lookup.")
         return None
 
     # Placeholder for actual Passive DNS API call
@@ -63,12 +77,12 @@ def get_passive_dns_info(query):
     #     response.raise_for_status()
     #     return response.json()
     # except requests.exceptions.RequestException as e:
-    #     print(f"Passive DNS lookup error: {e}")
+    #     logging.error(f"Passive DNS lookup error: {e}")
     #     return None
-    print(f"Performing Passive DNS lookup for: {query} (API integration pending)")
+    logging.info(f"Performing Passive DNS lookup for: {query} (API integration pending)")
     return {"message": "Passive DNS lookup not yet implemented with a real API."}
 
-def get_service_name(port):
+def get_service_name(port: int) -> str:
     # A simple mapping for common ports to service names
     # This can be expanded or replaced with a more comprehensive service lookup
     port_services = {

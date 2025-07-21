@@ -7,6 +7,36 @@
 </head>
 <body class="p-4">
     <h1>📊 入侵警示 Dashboard</h1>
+
+    <h2 class="mt-5">🚨 Correlated Incidents</h2>
+    <table class="table table-bordered table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Incident ID</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Severity</th>
+                <th>Alert Count</th>
+                <th>Involved IPs</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for incident in incidents %}
+            <tr>
+                <td>{{ incident.incident_id }}</td>
+                <td>{{ incident.start_time }}</td>
+                <td>{{ incident.end_time }}</td>
+                <td>{{ incident.severity }}</td>
+                <td>{{ incident.alert_count }}</td>
+                <td>{{ incident.involved_ips | join(', ') }}</td>
+                <td>{{ incident.summary }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2 class="mt-5">Raw Alerts</h2>
     <table class="table table-bordered table-striped mt-3">
         <thead>
             <tr>
@@ -14,6 +44,7 @@
                 <th>來源 IP</th>
                 <th>目標 IP</th>
                 <th>警示原因</th>
+                <th>Incident ID</th>
             </tr>
         </thead>
         <tbody>
@@ -23,6 +54,7 @@
                 <td>{{ alert[1] }}</td>
                 <td>{{ alert[2] }}</td>
                 <td>{{ alert[3] }}</td>
+                <td>{{ alert[5] if alert[5] else 'N/A' }}</td>
             </tr>
             {% endfor %}
         </tbody>
