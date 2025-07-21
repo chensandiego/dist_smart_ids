@@ -89,11 +89,26 @@ def main() -> None:
                 if dest_port:
                     event["dest_service"] = get_service_name(dest_port)
 
+                sid: Optional[int] = event.get("alert", {}).get("sid")
+                if sid in [2000001, 2000002]:  # Golden Ticket or Silver Ticket SIDs
+                    handle_ad_attack_alert(event)
+                
                 send_alert_to_rabbitmq(event)
         except json.JSONDecodeError as e:
             logging.error(f"Error decoding JSON from Suricata EVE log: {e} - Line: {line.strip()}")
         except Exception as e:
             logging.error(f"An unexpected error occurred while processing Suricata EVE log: {e}", exc_info=True)
+
+def handle_ad_attack_alert(alert_data: Dict[str, Any]) -> None:
+    """
+    Handles Golden Ticket and Silver Ticket alerts.
+    """
+    sid = alert_data.get("alert", {}).get("sid")
+    msg = alert_data.get("alert", {}).get("signature")
+    logging.info(f"Detected AD Attack Alert (SID: {sid}): {msg}")
+    # Further processing for AD attack alerts can be added here,
+    # e.g., extracting specific Kerberos fields, correlating with other data,
+    # or sending to a dedicated AD security monitoring system.
 
 if __name__ == "__main__":
     main()

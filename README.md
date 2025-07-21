@@ -31,6 +31,7 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 -   **Automated Response:** Can automatically block malicious IP addresses.
 -   **Anomaly Detection:** Uses machine learning (Isolation Forest) to detect unusual traffic patterns.
 -   **Ransomware Detection:** Monitors network traffic for behavioral patterns indicative of ransomware activity (e.g., high volume of file operations on network shares).
+-   **Golden/Silver Ticket Detection:** Initial implementation for detecting Golden Ticket and Silver Ticket attacks using Suricata rules.
 -   **Alert Correlation and Prioritization:** Implements logic to correlate related alerts from different detection mechanisms and sensors, reducing alert fatigue and prioritizing the most critical threats.
 
 ---
@@ -39,6 +40,7 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 
 This version introduces significant improvements in project structure and maintainability, and new features:
 
+-   **Golden/Silver Ticket Detection:** Initial Suricata rules (`rules/ad_attacks.rules`) have been added for Golden Ticket (SID 2000001) and Silver Ticket (SID 2000002) detection. The `suricata.yaml` has been updated to include this new rule file. Additionally, `suricata_alert_parser.py` has been modified to specifically handle these new alert SIDs, including a placeholder function `handle_ad_attack_alert` for future advanced processing. **Note:** The current rules are basic placeholders and will require further refinement for accurate detection and to minimize false positives.
 -   **Modularized Dockerfiles:** Each core service (aggregator, dashboard, rule_updater, suricata) now has its own dedicated Dockerfile, leading to smaller, more efficient images and clearer separation of concerns.
 -   **Refactored Docker Compose:** The `docker-compose.yml` has been updated to reflect the new modular structure, making it easier to manage and deploy individual services.
 -   **Improved Testability:** Python import paths in test files have been corrected to align with the new directory structure, ensuring tests can be run reliably.

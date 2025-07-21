@@ -1,0 +1,13 @@
+# Golden Ticket Detection (Placeholder - requires more advanced logic)
+# This rule is a very basic example and will likely generate false positives.
+# A true Golden Ticket detection requires analyzing TGTs for anomalies (e.g., long lifetime, invalid PAC).
+# This rule just looks for any Kerberos AS-REQ (Authentication Service Request)
+# which is a precursor to getting a TGT.
+alert krb5 any any -> any any (msg:"Possible Golden Ticket - Kerberos AS-REQ"; flow:to_server; app-layer-event:krb5.as_req; sid:2000001; rev:1;)
+
+# Silver Ticket Detection (Placeholder - requires more advanced logic)
+# This rule is a very basic example and will likely generate false positives.
+# A true Silver Ticket detection requires analyzing TGS tickets for anomalies (e.g., forged SPN, invalid checksum).
+# This rule just looks for any Kerberos TGS-REQ (Ticket Granting Service Request)
+# which is a precursor to getting a TGS.
+alert krb5 any any -> any any (msg:"Possible Silver Ticket - Kerberos TGS-REQ"; flow:to_server; app-layer-event:krb5.tgs_req; sid:2000002; rev:1;)

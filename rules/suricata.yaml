@@ -1,6 +1,10 @@
 # This is a minimal Suricata YAML configuration for EVE JSON output.
 # For a full configuration, refer to the Suricata documentation.
 
+rule-files:
+  - suricata.rules
+  - ad_attacks.rules
+
 outputs:
   - eve-log:
       enabled: yes
