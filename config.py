@@ -46,6 +46,11 @@ EMAIL_USER = os.environ.get("EMAIL_USER")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 EMAIL_RECIPIENT = "recipient@example.com" # Replace with the recipient's email address
 
+# Exchange Server settings for Email Scanner
+EXCHANGE_USERNAME = os.environ.get("EXCHANGE_USERNAME", "your_email@example.com")
+EXCHANGE_PASSWORD = os.environ.get("EXCHANGE_PASSWORD", "your_password")
+EXCHANGE_SERVER = os.environ.get("EXCHANGE_SERVER", "your_exchange_server")
+
 # Elasticsearch settings
 ELASTICSEARCH_HOST = "localhost"
 ELASTICSEARCH_PORT = 9200
