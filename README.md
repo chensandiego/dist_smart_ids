@@ -29,7 +29,7 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 -   **Automated Rule Updates:** Automatically downloads and updates Suricata rulesets.
 -   **Threat Intelligence Integration:** Enriches alerts with AbuseIPDB information.
 -   **Automated Response:** Can automatically block malicious IP addresses.
--   **Anomaly Detection:** Uses machine learning (Isolation Forest) to detect unusual traffic patterns.
+-   **Anomaly Detection:** Uses machine learning (Isolation Forest, DBSCAN) to detect unusual traffic patterns.
 -   **Ransomware Detection:** Monitors network traffic for behavioral patterns indicative of ransomware activity (e.g., high volume of file operations on network shares).
 -   **Golden/Silver Ticket Detection:** Initial implementation for detecting Golden Ticket and Silver Ticket attacks using Suricata rules.
 -   **Alert Correlation and Prioritization:** Implements logic to correlate related alerts from different detection mechanisms and sensors, reducing alert fatigue and prioritizing the most critical threats.

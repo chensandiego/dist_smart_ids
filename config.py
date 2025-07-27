@@ -55,3 +55,7 @@ EXCHANGE_SERVER = os.environ.get("EXCHANGE_SERVER", "your_exchange_server")
 ELASTICSEARCH_HOST = "localhost"
 ELASTICSEARCH_PORT = 9200
 ELASTICSEARCH_INDEX = "smart_ids_alerts"
+
+# DBSCAN settings
+DBSCAN_EPS = float(os.environ.get("DBSCAN_EPS", "0.5"))
+DBSCAN_MIN_SAMPLES = int(os.environ.get("DBSCAN_MIN_SAMPLES", "5"))

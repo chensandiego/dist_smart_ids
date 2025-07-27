@@ -1,5 +1,6 @@
 from scapy.all import IP
 from sklearn.ensemble import IsolationForest
+from sklearn.cluster import DBSCAN
 from joblib import load
 import time
 import json
@@ -16,16 +17,24 @@ from email_scanner import scan_exchange_inbox
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# --- Anomaly Detection Model ---
+# --- Anomaly Detection Models ---
 try:
-    model: IsolationForest = load("model/isolation_forest_model.joblib")
+    isolation_forest_model: IsolationForest = load("model/isolation_forest_model.joblib")
     logging.info("Isolation Forest model loaded successfully.")
 except FileNotFoundError:
     logging.error("Isolation Forest model file not found. Please ensure 'model/isolation_forest_model.joblib' exists.")
-    model = None
-exce_pt Exception as e:
+    isolation_forest_model = None
+except Exception as e:
     logging.error(f"Error loading Isolation Forest model: {e}", exc_info=True)
-    model = None
+    isolation_forest_model = None
+
+from config import DBSCAN_EPS, DBSCAN_MIN_SAMPLES
+dbscan_model: DBSCAN = DBSCAN(eps=DBSCAN_EPS, min_samples=DBSCAN_MIN_SAMPLES)
+logging.info(f"DBSCAN model initialized with eps={DBSCAN_EPS}, min_samples={DBSCAN_MIN_SAMPLES}.")
+
+# Store recent features for DBSCAN
+recent_features = []
+MAX_RECENT_FEATURES = 1000 # Adjust as needed
 
 SIMILARITY_THRESHOLD: float = 0.5
 
@@ -112,19 +121,42 @@ def packet_handler(pkt: Any) -> None:
         raise_alert(alert)
         return
 
-    # Anomaly-based detection
-    if model:
-        features: list[Any] = extract_features(pkt)
-        prediction: Any = model.predict([features])
-        if prediction[0] == -1:
+    # Anomaly-based detection (Isolation Forest)
+    features: list[Any] = extract_features(pkt)
+    if isolation_forest_model:
+        prediction_if: Any = isolation_forest_model.predict([features])
+        if prediction_if[0] == -1:
             alert = {
                 "time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 "src": pkt[IP].src,
                 "dst": pkt[IP].dst,
-                "reason": "異常流量偵測",
+                "reason": "異常流量偵測 (Isolation Forest)",
                 "packet": bytes(pkt).hex()
             }
             raise_alert(alert)
+
+    # Anomaly-based detection (DBSCAN)
+    recent_features.append(features)
+    if len(recent_features) > MAX_RECENT_FEATURES:
+        recent_features.pop(0) # Keep the list size bounded
+
+    # Periodically re-fit DBSCAN and predict
+    if len(recent_features) >= DBSCAN_MIN_SAMPLES: # Ensure enough samples for DBSCAN
+        try:
+            dbscan_model.fit(recent_features)
+            # Predict for the latest packet
+            prediction_dbscan = dbscan_model.fit_predict([features])
+            if prediction_dbscan[0] == -1: # -1 indicates noise point (anomaly)
+                alert = {
+                    "time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                    "src": pkt[IP].src,
+                    "dst": pkt[IP].dst,
+                    "reason": "異常流量偵測 (DBSCAN)",
+                    "packet": bytes(pkt).hex()
+                }
+                raise_alert(alert)
+        except Exception as e:
+            logging.error(f"Error fitting or predicting with DBSCAN: {e}", exc_info=True)
 
 # --- Main Execution ---
 if __name__ == "__main__":
