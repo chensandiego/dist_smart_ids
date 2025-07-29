@@ -14,6 +14,7 @@ from enrichment import get_whois_info, get_abuseipdb_info
 from behavior_model import behavior_model
 from ransomware_detector import monitor_smb_activity, detect_ransomware_behavior
 from email_scanner import scan_exchange_inbox
+from dns_analyzer import analyze_dns_packet
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -93,6 +94,11 @@ def packet_handler(pkt: Any) -> None:
 
     if IP not in pkt:
         return
+
+    # DNS analysis
+    dns_alerts = analyze_dns_packet(pkt)
+    for alert in dns_alerts:
+        raise_alert(alert)
 
     # Pass packet to ransomware detector
     monitor_smb_activity(pkt)

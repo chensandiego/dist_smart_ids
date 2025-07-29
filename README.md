@@ -34,6 +34,7 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 -   **Golden/Silver Ticket Detection:** Initial implementation for detecting Golden Ticket and Silver Ticket attacks using Suricata rules.
 -   **Alert Correlation and Prioritization:** Implements logic to correlate related alerts from different detection mechanisms and sensors, reducing alert fatigue and prioritizing the most critical threats.
 -   **Suspicious Email Detection:** Connects to Microsoft Exchange servers to scan for suspicious emails, including phishing attempts and malicious attachments.
+-   **DNS Analysis:** Analyzes DNS queries to detect potential threats like DNS tunneling and requests to known malicious domains.
 
 ---
 
@@ -41,11 +42,12 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 
 This version introduces significant improvements in project structure and maintainability, and new features:
 
+-   **DNS Analysis:** A new `dns_analyzer.py` module has been added to analyze DNS queries for suspicious activity. This includes checks for unusually long query names (a potential sign of DNS tunneling) and queries to known malicious domains.
 -   **Suspicious Email Detection:** A new `email_scanner.py` module has been added to connect to Microsoft Exchange servers via Exchange Web Services (EWS). The scanner fetches unread emails and analyzes them for suspicious headers, content, and attachments. Alerts are sent to the central aggregator. To enable this feature, you must set the `EXCHANGE_USERNAME`, `EXCHANGE_PASSWORD`, and `EXCHANGE_SERVER` environment variables.
 -   **Golden/Silver Ticket Detection:** Initial Suricata rules (`rules/ad_attacks.rules`) have been added for Golden Ticket (SID 2000001) and Silver Ticket (SID 2000002) detection. The `suricata.yaml` has been updated to include this new rule file. Additionally, `suricata_alert_parser.py` has been modified to specifically handle these new alert SIDs, including a placeholder function `handle_ad_attack_alert` for future advanced processing. **Note:** The current rules are basic placeholders and will require further refinement for accurate detection and to minimize false positives.
 -   **Modularized Dockerfiles:** Each core service (aggregator, dashboard, rule_updater, suricata) now has its own dedicated Dockerfile, leading to smaller, more efficient images and clearer separation of concerns.
 -   **Refactored Docker Compose:** The `docker-compose.yml` has been updated to reflect the new modular structure, making it easier to manage and deploy individual services.
--   **Improved Testability:** Python import paths in test files have been corrected to align with the new directory structure, ensuring tests can be run reliably.
+-   **Improved Testability:** Python import paths in test files have been corrected to align with the new directory structure, ensuring tests can be run reliably. Additionally, new test files have been added for the DNS analyzer and email scanner to ensure their functionality.
 -   **Enhanced Error Handling, Logging, and Type Hinting:** Core Python modules (`aggregator.py`, `database.py`, `notifications.py`, `blocker.py`, `enrichment.py`, `detector.py`, `ransomware_detector.py`, `dashboard.py`, `suricata_alert_parser.py`, `pcap_monitor.py`) have been refactored for improved robustness, debuggability, and code quality.
 -   **Alert Correlation and Prioritization:** A new `alert_correlator.py` module has been introduced to group related alerts into higher-fidelity incidents, with database schema updates (`database.py`) and dashboard integration (`dashboard/dashboard.py`, `templates/index.html`) to display these correlated incidents.
 

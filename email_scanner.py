@@ -45,14 +45,15 @@ def analyze_email_body(email):
     ]
     
     for phrase in phishing_phrases:
-        if re.search(phrase, email.body, re.IGNORECASE):
+        if email.body and re.search(phrase, email.body, re.IGNORECASE):
             suspicious_indicators.append(f"Detected suspicious phrase: '{phrase}'")
-            
+
     # Regex for suspicious links
-    suspicious_links = re.findall(r'href=['"](http[s]?://[^'"]+)['"]', email.body)
-    if suspicious_links:
-        suspicious_indicators.append(f"Found links in email: {', '.join(suspicious_links)}")
-        
+    if email.body:
+        suspicious_links = re.findall(r"(https?://[^\s]+)", email.body)
+        if suspicious_links:
+            suspicious_indicators.append(f"Found links in email: {', '.join(suspicious_links)}")
+            
     return suspicious_indicators
 
 def analyze_attachments(email):
