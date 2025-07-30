@@ -11,6 +11,8 @@ from blocker import block_ip
 from alert_correlator import AlertCorrelator, CorrelatedIncident # Import the new correlator
 import aws_cloudtrail_monitor
 
+import ueba_monitor
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -21,6 +23,10 @@ def process_alert(ch, method, properties, body) -> None:
     try:
         alert: Dict[str, Any] = json.loads(body)
         logging.info(f"[AGGR] Received alert: {alert.get('reason', 'No reason provided')}")
+
+        # Profile and detect anomalies with the UEBA monitor
+        ueba_monitor.profile_user_activity(alert)
+        ueba_monitor.detect_anomalies(alert)
 
         # Process alert with the correlator
         correlated_incident: CorrelatedIncident = correlator.process_alert(alert)

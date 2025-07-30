@@ -36,6 +36,7 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 -   **Suspicious Email Detection:** Connects to Microsoft Exchange servers to scan for suspicious emails, including phishing attempts and malicious attachments.
 -   **DNS Analysis:** Analyzes DNS queries to detect potential threats like DNS tunneling and requests to known malicious domains.
 -   **AWS CloudTrail Monitoring:** Monitors AWS CloudTrail logs for suspicious API activity, such as security group changes or IAM user creation.
+-   **User and Entity Behavior Analytics (UEBA):** Baselines normal user and device behavior to detect anomalies, such as logins at unusual times or access to sensitive files for the first time.
 
 ---
 
@@ -52,6 +53,7 @@ This version introduces significant improvements in project structure and mainta
 -   **Enhanced Error Handling, Logging, and Type Hinting:** Core Python modules (`aggregator.py`, `database.py`, `notifications.py`, `blocker.py`, `enrichment.py`, `detector.py`, `ransomware_detector.py`, `dashboard.py`, `suricata_alert_parser.py`, `pcap_monitor.py`) have been refactored for improved robustness, debuggability, and code quality.
 -   **Alert Correlation and Prioritization:** A new `alert_correlator.py` module has been introduced to group related alerts into higher-fidelity incidents, with database schema updates (`database.py`) and dashboard integration (`dashboard/dashboard.py`, `templates/index.html`) to display these correlated incidents.
 -   **AWS CloudTrail Monitoring:** A new `aws_cloudtrail_monitor.py` module has been added to monitor AWS CloudTrail logs. This feature detects suspicious API calls, such as security group modifications and IAM user creation, and sends alerts to the central aggregator. To enable this feature, you must configure your AWS credentials (see the "Configuring and Starting the Central Aggregator Services" section).
+-   **User and Entity Behavior Analytics (UEBA):** A new `ueba_monitor.py` module has been added to perform behavior analytics. This feature profiles user and device activity, establishes baselines for normal behavior, and detects anomalies such as logins at unusual times or access to new sensitive files. The UEBA monitor is integrated with the aggregator to analyze alerts in real-time.
 
 ---
 
