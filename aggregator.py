@@ -2,12 +2,14 @@ import pika
 import json
 import logging
 from typing import Dict, Any
+import threading
 
 from database import insert_alert, init_db, insert_correlated_incident
 from notifications import send_line_notification, send_slack_notification, send_email_notification, send_to_elasticsearch, export_to_csv
 from config import RABBITMQ_HOST, RABBITMQ_QUEUE, BLOCKING_ENABLED
 from blocker import block_ip
 from alert_correlator import AlertCorrelator, CorrelatedIncident # Import the new correlator
+import aws_cloudtrail_monitor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -57,9 +59,16 @@ def process_alert(ch, method, properties, body) -> None:
         logging.error(f"[AGGR] Error processing alert: {e}", exc_info=True)
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True) # Requeue on processing failure
 
+def start_aws_monitor():
+    """Starts the AWS CloudTrail monitor in a separate thread."""
+    aws_thread = threading.Thread(target=aws_cloudtrail_monitor.main, daemon=True)
+    aws_thread.start()
+    logging.info("[*] AWS CloudTrail monitor started.")
+
 def start_aggregator() -> None:
     logging.info("[*] Starting aggregator service...")
     init_db() # Ensure database and tables are created
+    start_aws_monitor()
 
     try:
         connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST))

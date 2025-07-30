@@ -12,3 +12,4 @@ fastapi
 uvicorn
 scapy
 exchangelib
+boto3
