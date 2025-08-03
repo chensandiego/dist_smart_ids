@@ -3,7 +3,7 @@ import time
 import pika
 from config import RABBITMQ_HOST, RABBITMQ_QUEUE
 import os
-from enrichment import get_abuseipdb_info, get_geolocation, get_service_name, get_passive_dns_info
+from enrichment import get_abuseipdb_info, get_geolocation, get_service_name, get_passive_dns_info, get_misp_info
 
 def send_alert_to_rabbitmq(alert_data):
     try:
@@ -50,10 +50,12 @@ def main():
                     event["abuseipdb_src"] = get_abuseipdb_info(src_ip)
                     event["src_geolocation"] = get_geolocation(src_ip)
                     event["src_passive_dns"] = get_passive_dns_info(src_ip)
+                    event["misp_src"] = get_misp_info(src_ip)
                 if dest_ip:
                     event["abuseipdb_dst"] = get_abuseipdb_info(dest_ip)
                     event["dest_geolocation"] = get_geolocation(dest_ip)
                     event["dest_passive_dns"] = get_passive_dns_info(dest_ip)
+                    event["misp_dst"] = get_misp_info(dest_ip)
                 if dest_port:
                     event["dest_service"] = get_service_name(dest_port)
 

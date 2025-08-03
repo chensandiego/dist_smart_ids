@@ -27,6 +27,7 @@ services:
     build:
       context: ./aggregator
       dockerfile: Dockerfile
+    image: dist_smart_ids_aggregator:latest
     depends_on:
       - postgres
       - rabbitmq
@@ -62,6 +63,23 @@ services:
       - aggregator
     environment:
       - AGGREGATOR_BASE_URL=http://aggregator:5000
+
+  image-scan:
+    image: aquasec/trivy:latest
+    command: image --severity HIGH,CRITICAL dist_smart_ids_aggregator:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  falco:
+    image: falcosecurity/falco:latest
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /dev:/host/dev
+      - /proc:/host/proc:ro
+      - ./falco/falco.yaml:/etc/falco/falco.yaml
+      - ./falco/rules.d:/etc/falco/rules.d
+    command: falco -c /etc/falco/falco.yaml -r /etc/falco/falco_rules.yaml -r /etc/falco/rules.d/custom_rules.yaml
 
 volumes:
   suricata_logs:

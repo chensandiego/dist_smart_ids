@@ -8,7 +8,7 @@ from config import RABBITMQ_HOST, RABBITMQ_QUEUE
 import os
 
 print("[Detector] Attempting to import enrichment and behavior_model...")
-from enrichment import get_whois_info, get_abuseipdb_info, get_geolocation, get_service_name
+from enrichment import get_whois_info, get_abuseipdb_info, get_geolocation, get_service_name, get_misp_info
 from behavior_model import behavior_model
 print("[Detector] Successfully imported enrichment and behavior_model.")
 
@@ -18,7 +18,7 @@ print(f"[Detector] Attempting to load Isolation Forest model from: {MODEL_PATH}"
 try:
     model = load(MODEL_PATH)
     print("[Detector] Successfully loaded Isolation Forest model.")
-except FileNotFoundError:
+e xcept FileNotFoundError:
     print(f"[Detector ERROR] Isolation Forest model not found at {MODEL_PATH}. Please ensure it exists.")
     model = None # Handle case where model is not found
 except Exception as e:
@@ -44,6 +44,8 @@ def raise_alert(pkt, reason):
     whois_info = get_whois_info(src)
     abuseipdb_src_info = get_abuseipdb_info(src)
     abuseipdb_dst_info = get_abuseipdb_info(dst)
+    misp_src_info = get_misp_info(src)
+    misp_dst_info = get_misp_info(dst)
     
     # Add geolocation and service name for more context
     src_geolocation = get_geolocation(src)
@@ -62,6 +64,8 @@ def raise_alert(pkt, reason):
         "whois": str(whois_info), # Convert Whois object to string for serialization
         "abuseipdb_src": abuseipdb_src_info,
         "abuseipdb_dst": abuseipdb_dst_info,
+        "misp_src": misp_src_info,
+        "misp_dst": misp_dst_info,
         "src_geolocation": src_geolocation,
         "dst_geolocation": dst_geolocation,
         "src_port": src_port,

@@ -27,7 +27,7 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 -   **Centralized Management:** A central aggregator collects and manages alerts from all sensors.
 -   **Resilient Sensors:** Sensors have heartbeat monitoring and local alert caching to handle network disruptions.
 -   **Automated Rule Updates:** Automatically downloads and updates Suricata rulesets.
--   **Threat Intelligence Integration:** Enriches alerts with AbuseIPDB information.
+-   **Threat Intelligence Integration:** Enriches alerts with AbuseIPDB and MISP information.
 -   **Automated Response:** Can automatically block malicious IP addresses.
 -   **Anomaly Detection:** Uses machine learning (Isolation Forest, DBSCAN) to detect unusual traffic patterns.
 -   **Ransomware Detection:** Monitors network traffic for behavioral patterns indicative of ransomware activity (e.g., high volume of file operations on network shares).
@@ -91,6 +91,10 @@ export EXCHANGE_SERVER="your_exchange_server"
 # For AWS CloudTrail Monitoring (optional)
 export AWS_ACCESS_KEY_ID="YOUR_AWS_ACCESS_KEY_ID"
 export AWS_SECRET_ACCESS_KEY="YOUR_AWS_SECRET_ACCESS_KEY"
+
+# For MISP Integration (optional)
+export MISP_URL="YOUR_MISP_URL"
+export MISP_API_KEY="YOUR_MISP_API_KEY"
 
 docker-compose up -d --build
 ```

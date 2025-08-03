@@ -13,3 +13,4 @@ uvicorn
 scapy
 exchangelib
 boto3
+pymisp

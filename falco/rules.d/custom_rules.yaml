@@ -1,0 +1,5 @@
+- rule: Terminal shell in container
+  desc: A shell was used in the container
+  condition: evt.type = execve and evt.dir=< and container.id != host and proc.name = bash
+  output: "A shell was spawned in a container (user=%user.name container_id=%container.id container_name=%container.name proc_name=%proc.name command=%proc.cmdline)"
+  priority: WARNING

@@ -3,8 +3,9 @@ import requests
 import geoip2.database
 import logging
 from typing import Dict, Any, Optional
+from pymisp import PyMISP
 
-from config import ABUSEIPDB_API_KEY, GEOLITE2_CITY_DB, PASSIVE_DNS_API_KEY
+from config import ABUSEIPDB_API_KEY, GEOLITE2_CITY_DB, PASSIVE_DNS_API_KEY, MISP_URL, MISP_API_KEY
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -81,6 +82,20 @@ def get_passive_dns_info(query: str) -> Optional[Dict[str, Any]]:
     #     return None
     logging.info(f"Performing Passive DNS lookup for: {query} (API integration pending)")
     return {"message": "Passive DNS lookup not yet implemented with a real API."}
+
+def get_misp_info(indicator: str) -> Optional[Dict[str, Any]]:
+    if not MISP_URL or not MISP_API_KEY:
+        logging.warning("MISP_URL or MISP_API_KEY not set in config.py. Skipping MISP lookup.")
+        return None
+
+    try:
+        misp = PyMISP(MISP_URL, MISP_API_KEY, ssl=False) # Set ssl to True in production
+        result = misp.search(controller='attributes', value=indicator)
+        logging.info(f"MISP lookup successful for {indicator}")
+        return result
+    except Exception as e:
+        logging.error(f"MISP lookup error for {indicator}: {e}")
+        return None
 
 def get_service_name(port: int) -> str:
     # A simple mapping for common ports to service names

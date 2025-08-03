@@ -39,6 +39,10 @@ GEOLITE2_CITY_DB = os.environ.get("GEOLITE2_CITY_DB", "GeoLite2-City.mmdb") # Pa
 # Passive DNS settings
 PASSIVE_DNS_API_KEY = os.environ.get("PASSIVE_DNS_API_KEY")
 
+# MISP settings
+MISP_URL = os.environ.get("MISP_URL", "")
+MISP_API_KEY = os.environ.get("MISP_API_KEY", "")
+
 # Email settings
 EMAIL_HOST = "smtp.example.com"  # Replace with your SMTP server
 EMAIL_PORT = 587
