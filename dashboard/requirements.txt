@@ -1,0 +1,16 @@
+scapy
+scikit-learn
+joblib
+flask
+requests
+python-whois
+elasticsearch
+pika
+psycopg2-binary
+geoip2
+fastapi
+uvicorn
+scapy
+exchangelib
+boto3
+pymisp

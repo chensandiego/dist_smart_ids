@@ -1,3 +1,5 @@
+%YAML 1.1
+---
 # This is a minimal Suricata YAML configuration for EVE JSON output.
 # For a full configuration, refer to the Suricata documentation.
 

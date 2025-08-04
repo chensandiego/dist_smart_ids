@@ -5,7 +5,7 @@ import shutil
 from config import SURICATA_RULES
 
 # URL for the Emerging Threats Open ruleset
-ET_OPEN_RULES_URL = "https://rules.emergingthreats.net/open/suricata-6.0/emerging-all.rules.tar.gz"
+ET_OPEN_RULES_URL = "https://rules.emergingthreats.net/open/suricata-5.0/emerging-all.rules.tar.gz"
 TEMP_DIR = "/tmp/suricata_rules"
 RULES_DIR = "rules"
 

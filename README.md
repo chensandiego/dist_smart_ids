@@ -178,6 +178,29 @@ The emulator reads a list of attack scenarios from the `emulation_scenarios.json
 
     The emulator will log the actions it takes to the console. You can monitor the `dist_smart_ids` logs and dashboard to verify that the attacks are being detected.
 
+### Available Techniques
+
+The emulator currently supports the following MITRE ATT&CK techniques:
+
+-   **T1046:** Port Scan
+-   **T1071.004:** DNS Tunneling
+-   **T1190:** Log4j Exploit Attempt
+-   **T1027:** Obfuscated File or Information
+-   **T1571:** Command and Control: Non-Standard Port
+-   **T1018:** Remote System Discovery (Ping Sweep)
+-   **T1057:** Process Discovery
+-   **T1110.001:** Brute Force (Password Guessing)
+-   **T1219:** Remote Access Software
+-   **T1078:** Valid Accounts
+-   **T1562.001:** Disable Security Tools
+-   **T1049:** System Network Connections Discovery
+-   **T1110.003:** SMB Brute Force
+-   **T1021.002:** Lateral Movement (PsExec)
+-   **T1041:** Exfiltration Over HTTP
+-   **T1003.001:** OS Credential Dumping: LSASS Memory
+-   **T1059.001:** Command and Scripting Interpreter: PowerShell
+-   **T1548.002:** Abuse Elevation Control Mechanism: Bypass User Account Control
+
 ### Customizing Scenarios
 
 You can easily add or modify attack scenarios by editing the `emulation_scenarios.json` file. Each object in the JSON array represents a single scenario and is defined by a `technique_id` and other parameters.
