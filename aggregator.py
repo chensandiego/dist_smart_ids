@@ -6,8 +6,8 @@ import threading
 
 from database import insert_alert, init_db, insert_correlated_incident
 from notifications import send_line_notification, send_slack_notification, send_email_notification, send_to_elasticsearch, export_to_csv
-from config import RABBITMQ_HOST, RABBITMQ_QUEUE, BLOCKING_ENABLED
-from blocker import block_ip
+from config import RABBITMQ_HOST, RABBITMQ_QUEUE, BLOCKING_ENABLED, QUARANTINE_ENABLED
+from blocker import block_ip, quarantine_host
 from alert_correlator import AlertCorrelator, CorrelatedIncident # Import the new correlator
 import aws_cloudtrail_monitor
 
@@ -54,6 +54,10 @@ def process_alert(ch, method, properties, body) -> None:
         # Automated IP Blocking
         if BLOCKING_ENABLED and 'src' in alert:
             block_ip(alert['src'])
+
+        # Automated Host Quarantine for high-confidence ransomware alerts
+        if QUARANTINE_ENABLED and alert.get('cve') == 'RANSOMWARE-SHADOW-COPY-DELETION' and 'src' in alert:
+            quarantine_host(alert['src'])
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
         logging.info(f"[AGGR] Successfully processed alert: {alert.get('reason', 'No reason provided')}")

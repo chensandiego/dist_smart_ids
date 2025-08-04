@@ -32,6 +32,7 @@ ABUSEIPDB_API_KEY = os.environ.get("ABUSEIPDB_API_KEY")
 # Automated Response settings
 BLOCKING_ENABLED = os.environ.get("BLOCKING_ENABLED", "False").lower() == "true"
 BLOCKING_DURATION_MINUTES = int(os.environ.get("BLOCKING_DURATION_MINUTES", "60")) # Default to 60 minutes
+QUARANTINE_ENABLED = os.environ.get("QUARANTINE_ENABLED", "False").lower() == "true"
 
 # GeoIP settings
 GEOLITE2_CITY_DB = os.environ.get("GEOLITE2_CITY_DB", "GeoLite2-City.mmdb") # Path to MaxMind GeoLite2 City database

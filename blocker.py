@@ -41,6 +41,25 @@ def unblock_ip(ip_address: str) -> None:
     except Exception as e:
         logging.error(f"[BLOCKER] An unexpected error occurred while unblocking IP {ip_address}: {e}", exc_info=True)
 
+def quarantine_host(ip_address: str) -> None:
+    """
+    Isolates a host by blocking all inbound and outbound traffic.
+    """
+    logging.warning(f"[QUARANTINE] Attempting to isolate host: {ip_address}")
+    try:
+        # Block all traffic to and from the IP address
+        subprocess.run(["sudo", "iptables", "-I", "INPUT", "-s", ip_address, "-j", "DROP"], check=True)
+        subprocess.run(["sudo", "iptables", "-I", "OUTPUT", "-d", ip_address, "-j", "DROP"], check=True)
+        subprocess.run(["sudo", "iptables", "-I", "FORWARD", "-s", ip_address, "-j", "DROP"], check=True)
+        subprocess.run(["sudo", "iptables", "-I", "FORWARD", "-d", ip_address, "-j", "DROP"], check=True)
+        logging.warning(f"[QUARANTINE] Successfully isolated host: {ip_address}. Manual intervention is required to un-quarantine.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"[QUARANTINE] Error isolating host {ip_address}: {e}. Command: {e.cmd}, Return Code: {e.returncode}, Output: {e.output.decode()}")
+    except FileNotFoundError:
+        logging.error("[QUARANTINE] iptables command not found. Make sure iptables is installed and in your PATH.")
+    except Exception as e:
+        logging.error(f"[QUARANTINE] An unexpected error occurred while isolating host {ip_address}: {e}", exc_info=True)
+
 if __name__ == "__main__":
     # Example usage (for testing)
     test_ip = "192.168.1.100"

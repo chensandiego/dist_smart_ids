@@ -56,6 +56,9 @@ def monitor_smb_activity(pkt: Any) -> None:
     Inspects a packet for SMB commands and updates activity counters if found.
     This version uses Scapy for more reliable SMB parsing and feature extraction.
     """
+    # Detect shadow copy deletion attempts first, as this is a high-priority indicator
+    detect_shadow_copy_deletion(pkt)
+
     if not pkt.haslayer(TCP) or not pkt.haslayer(IP) or not pkt.haslayer(SMB2_Header):
         return
 
@@ -157,6 +160,25 @@ def detect_ransomware_behavior() -> None:
             from detector import raise_alert
             raise_alert(synthetic_pkt, reason_str, cve="RANSOMWARE-BEHAVIOR-ENHANCED")
             del SMB_ACTIVITY[ip]
+
+def detect_shadow_copy_deletion(pkt: Any) -> None:
+    """
+    Detects attempts to delete Volume Shadow Copies, a common ransomware tactic.
+    """
+    if not pkt.haslayer(TCP) or not pkt.haslayer(IP):
+        return
+
+    try:
+        payload = bytes(pkt[TCP].payload)
+        # Look for the vssadmin command to delete shadows
+        if b'vssadmin' in payload and b'delete' in payload and b'shadows' in payload:
+            src_ip = pkt[IP].src
+            reason = f"Attempt to delete Volume Shadow Copies detected from {src_ip}. This is a strong indicator of a ransomware attack."
+            logging.warning(f"[ALERT] {reason}")
+            from detector import raise_alert
+            raise_alert(pkt, reason, cve="RANSOMWARE-SHADOW-COPY-DELETION")
+    except Exception as e:
+        logging.error(f"Error detecting shadow copy deletion: {e}")
 
 if __name__ == '__main__':
     # This is for standalone testing of the ransomware detector.

@@ -28,7 +28,9 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 -   **Resilient Sensors:** Sensors have heartbeat monitoring and local alert caching to handle network disruptions.
 -   **Automated Rule Updates:** Automatically downloads and updates Suricata rulesets.
 -   **Threat Intelligence Integration:** Enriches alerts with AbuseIPDB and MISP information.
--   **Automated Response:** Can automatically block malicious IP addresses.
+-   **Automated Response:** 
+    -   **IP Blocking:** Can automatically block malicious IP addresses using `iptables`.
+    -   **Host Isolation:** For high-confidence ransomware detections (e.g., shadow copy deletion), the system can automatically quarantine the infected host by blocking all inbound and outbound traffic.
 -   **Anomaly Detection:** Uses machine learning (Isolation Forest, DBSCAN) to detect unusual traffic patterns.
 -   **Ransomware Detection:** Monitors network traffic for behavioral patterns indicative of ransomware activity (e.g., high volume of file operations on network shares).
 -   **Golden/Silver Ticket Detection:** Initial implementation for detecting Golden Ticket and Silver Ticket attacks using Suricata rules.
@@ -200,6 +202,9 @@ The emulator currently supports the following MITRE ATT&CK techniques:
 -   **T1003.001:** OS Credential Dumping: LSASS Memory
 -   **T1059.001:** Command and Scripting Interpreter: PowerShell
 -   **T1548.002:** Abuse Elevation Control Mechanism: Bypass User Account Control
+-   **T1053.005:** Scheduled Task/Job: Scheduled Task
+-   **T1486:** Data Encrypted for Impact
+-   **T1070.004:** Indicator Removal on Host: File Deletion
 
 ### Customizing Scenarios
 

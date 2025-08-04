@@ -222,10 +222,40 @@ def execute_uac_bypass(target_ip):
     send(packet, verbose=0)
     logging.info(f"Sent command to attempt UAC bypass: {command}")
 
+def execute_scheduled_task(target_ip, command, task_name):
+    """
+    Simulates the creation of a scheduled task (T1053.005).
+    """
+    logging.info(f"Executing Scheduled Task (T1053.005) on {target_ip}")
+    schtasks_command = f"schtasks /create /tn {task_name} /tr \"{command}\" /sc onlogon"
+    packet = IP(dst=target_ip)/TCP(dport=135, flags="PA")/schtasks_command
+    send(packet, verbose=0)
+    logging.info(f"Sent command to create scheduled task: {schtasks_command}")
+
+def execute_data_encryption(target_ip, file_name):
+    """
+    Simulates a ransomware-style attack (T1486).
+    """
+    logging.info(f"Executing Data Encryption (T1486) on {target_ip}")
+    encrypted_file_name = f"{file_name}.encrypted"
+    packet = IP(dst=target_ip)/TCP(dport=445, flags="PA")/f"CREATE {encrypted_file_name}"
+    send(packet, verbose=0)
+    logging.info(f"Simulated creating an encrypted file: {encrypted_file_name}")
+
+def execute_file_deletion(target_ip, file_name):
+    """
+    Simulates the deletion of a file (T1070.004).
+    """
+    logging.info(f"Executing File Deletion (T1070.004) on {target_ip}")
+    packet = IP(dst=target_ip)/TCP(dport=445, flags="PA")/f"DELETE {file_name}"
+    send(packet, verbose=0)
+    logging.info(f"Simulated deleting file: {file_name}")
+
 def execute_scenario(scenario):
     """
     Executes a single attack scenario.
     """
+
 
     technique_id = scenario.get("technique_id", "N/A")
     technique_name = scenario.get("technique_name", "N/A")
@@ -307,11 +337,7 @@ def execute_scenario(scenario):
         target = scenario.get("target", "127.0.0.1")
         script = scenario.get("script", "Get-Process | Out-String")
         execute_powershell_script(target, script)
-    elif technique_id == "T1548.002":
-        target = scenario.get("target", "127.0.0.1")
-        execute_uac_bypass(target)
-    else:
-        logging.warning(f"Technique {technique_id} not implemented.")
+    elif technique_id == "T1548.002":        target = scenario.get("target", "127.0.0.1")        execute_uac_bypass(target)    elif technique_id == "T1053.005":        target = scenario.get("target", "127.0.0.1")        command = scenario.get("command", "C:\\Windows\\Temp\\malicious.exe")        task_name = scenario.get("task_name", "MaliciousTask")        execute_scheduled_task(target, command, task_name)    elif technique_id == "T1486":        target = scenario.get("target", "127.0.0.1")        file_name = scenario.get("file_name", "important_document.txt")        execute_data_encryption(target, file_name)    elif technique_id == "T1070.004":        target = scenario.get("target", "127.0.0.1")        file_name = scenario.get("file_name", "C:\\Windows\\Temp\\malicious.exe")        execute_file_deletion(target, file_name)    else:        logging.warning(f"Technique {technique_id} not implemented.")
 
 def main():
     """
