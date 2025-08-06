@@ -8,37 +8,44 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 
 ### Central Aggregator Components:
 
--   **aggregator:** Consumes alerts from sensors, stores them in a database, sends notifications, and triggers automated responses.
--   **database:** A PostgreSQL database to store alerts.
--   **dashboard:** A web-based dashboard to visualize alerts.
--   **suricata / rule_updater:** Can be run centrally or on the sensor. Manages and updates threat detection rules.
--   **enrichment / notifications / blocker:** Supporting services for the aggregator.
+-	**aggregator:** Consumes alerts from sensors, stores them in a database, sends notifications, and triggers automated responses.
+-	**database:** A PostgreSQL database to store alerts.
+-	**dashboard:** A web-based dashboard to visualize alerts.
+-	**suricata / rule_updater:** Can be run centrally or on the sensor. Manages and updates threat detection rules.
+-	**enrichment / notifications / blocker:** Supporting services for the aggregator.
 
 ### Standalone Sensor:
 
--   **pcap_monitor:** A lightweight, containerized service that sniffs network traffic on a specific host.
--   **detector:** Analyzes traffic to generate alerts.
--   **Heartbeat & Caching:** The sensor sends periodic status updates (heartbeats) to the aggregator and caches alerts locally if the aggregator is unreachable, preventing data loss.
+-	**pcap_monitor:** A lightweight, containerized service that sniffs network traffic on a specific host.
+-	**detector:** Analyzes traffic to generate alerts.
+-	**Heartbeat & Caching:** The sensor sends periodic status updates (heartbeats) to the aggregator and caches alerts locally if the aggregator is unreachable, preventing data loss.
+
+## Kafka Integration
+
+The system now uses Apache Kafka as a central message bus for communication between services. This provides a scalable and resilient architecture for handling high volumes of data.
+
+-	**Producers:** Services like `suricata_alert_parser.py`, `pcap_monitor.py`, `dns_analyzer.py`, `ransomware_detector.py`, and `email_scanner.py` act as Kafka producers, sending data to specific Kafka topics.
+-	**Consumers:** Services like `detector.py` act as Kafka consumers, subscribing to topics to receive and process data in real-time.
 
 ## Features
 
--   **Distributed Monitoring:** Deploy lightweight, containerized sensors across your network for broad visibility.
--   **Live Traffic Analysis:** Real-time network traffic monitoring and analysis.
--   **Centralized Management:** A central aggregator collects and manages alerts from all sensors.
--   **Resilient Sensors:** Sensors have heartbeat monitoring and local alert caching to handle network disruptions.
--   **Automated Rule Updates:** Automatically downloads and updates Suricata rulesets.
--   **Threat Intelligence Integration:** Enriches alerts with AbuseIPDB and MISP information.
--   **Automated Response:** 
-    -   **IP Blocking:** Can automatically block malicious IP addresses using `iptables`.
-    -   **Host Isolation:** For high-confidence ransomware detections (e.g., shadow copy deletion), the system can automatically quarantine the infected host by blocking all inbound and outbound traffic.
--   **Anomaly Detection:** Uses machine learning (Isolation Forest, DBSCAN) to detect unusual traffic patterns.
--   **Ransomware Detection:** Monitors network traffic for behavioral patterns indicative of ransomware activity (e.g., high volume of file operations on network shares).
--   **Golden/Silver Ticket Detection:** Initial implementation for detecting Golden Ticket and Silver Ticket attacks using Suricata rules.
--   **Alert Correlation and Prioritization:** Implements logic to correlate related alerts from different detection mechanisms and sensors, reducing alert fatigue and prioritizing the most critical threats.
--   **Suspicious Email Detection:** Connects to Microsoft Exchange servers to scan for suspicious emails, including phishing attempts and malicious attachments.
--   **DNS Analysis:** Analyzes DNS queries to detect potential threats like DNS tunneling and requests to known malicious domains.
--   **AWS CloudTrail Monitoring:** Monitors AWS CloudTrail logs for suspicious API activity, such as security group changes or IAM user creation.
--   **User and Entity Behavior Analytics (UEBA):** Baselines normal user and device behavior to detect anomalies, such as logins at unusual times or access to sensitive files for the first time.
+-	**Distributed Monitoring:** Deploy lightweight, containerized sensors across your network for broad visibility.
+-	**Live Traffic Analysis:** Real-time network traffic monitoring and analysis.
+-	**Centralized Management:** A central aggregator collects and manages alerts from all sensors.
+-	**Resilient Sensors:** Sensors have heartbeat monitoring and local alert caching to handle network disruptions.
+-	**Automated Rule Updates:** Automatically downloads and updates Suricata rulesets.
+-	**Threat Intelligence Integration:** Enriches alerts with AbuseIPDB and MISP information.
+-	**Automated Response:** 
+    -	**IP Blocking:** Can automatically block malicious IP addresses using `iptables`.
+    -	**Host Isolation:** For high-confidence ransomware detections (e.g., shadow copy deletion), the system can automatically quarantine the infected host by blocking all inbound and outbound traffic.
+-	**Anomaly Detection:** Uses machine learning (Isolation Forest, DBSCAN) to detect unusual traffic patterns.
+-	**Ransomware Detection:** Monitors network traffic for behavioral patterns indicative of ransomware activity (e.g., high volume of file operations on network shares).
+-	**Golden/Silver Ticket Detection:** Initial implementation for detecting Golden Ticket and Silver Ticket attacks using Suricata rules.
+-	**Alert Correlation and Prioritization:** Implements logic to correlate related alerts from different detection mechanisms and sensors, reducing alert fatigue and prioritizing the most critical threats.
+-	**Suspicious Email Detection:** Connects to Microsoft Exchange servers to scan for suspicious emails, including phishing attempts and malicious attachments.
+-	**DNS Analysis:** Analyzes DNS queries to detect potential threats like DNS tunneling and requests to known malicious domains.
+-	**AWS CloudTrail Monitoring:** Monitors AWS CloudTrail logs for suspicious API activity, such as security group changes or IAM user creation.
+-	**User and Entity Behavior Analytics (UEBA):** Baselines normal user and device behavior to detect anomalies, such as logins at unusual times or access to sensitive files for the first time.
 
 ---
 
@@ -46,16 +53,17 @@ The system is composed of two main parts: the **Central Aggregator** (run via `d
 
 This version introduces significant improvements in project structure and maintainability, and new features:
 
--   **DNS Analysis:** A new `dns_analyzer.py` module has been added to analyze DNS queries for suspicious activity. This includes checks for unusually long query names (a potential sign of DNS tunneling) and queries to known malicious domains.
--   **Suspicious Email Detection:** A new `email_scanner.py` module has been added to connect to Microsoft Exchange servers via Exchange Web Services (EWS). The scanner fetches unread emails and analyzes them for suspicious headers, content, and attachments. Alerts are sent to the central aggregator. To enable this feature, you must set the `EXCHANGE_USERNAME`, `EXCHANGE_PASSWORD`, and `EXCHANGE_SERVER` environment variables.
--   **Golden/Silver Ticket Detection:** Initial Suricata rules (`rules/ad_attacks.rules`) have been added for Golden Ticket (SID 2000001) and Silver Ticket (SID 2000002) detection. The `suricata.yaml` has been updated to include this new rule file. Additionally, `suricata_alert_parser.py` has been modified to specifically handle these new alert SIDs, including a placeholder function `handle_ad_attack_alert` for future advanced processing. **Note:** The current rules are basic placeholders and will require further refinement for accurate detection and to minimize false positives.
--   **Modularized Dockerfiles:** Each core service (aggregator, dashboard, rule_updater, suricata) now has its own dedicated Dockerfile, leading to smaller, more efficient images and clearer separation of concerns.
--   **Refactored Docker Compose:** The `docker-compose.yml` has been updated to reflect the new modular structure, making it easier to manage and deploy individual services.
--   **Improved Testability:** Python import paths in test files have been corrected to align with the new directory structure, ensuring tests can be run reliably. Additionally, new test files have been added for the DNS analyzer and email scanner to ensure their functionality.
--   **Enhanced Error Handling, Logging, and Type Hinting:** Core Python modules (`aggregator.py`, `database.py`, `notifications.py`, `blocker.py`, `enrichment.py`, `detector.py`, `ransomware_detector.py`, `dashboard.py`, `suricata_alert_parser.py`, `pcap_monitor.py`) have been refactored for improved robustness, debuggability, and code quality.
--   **Alert Correlation and Prioritization:** A new `alert_correlator.py` module has been introduced to group related alerts into higher-fidelity incidents, with database schema updates (`database.py`) and dashboard integration (`dashboard/dashboard.py`, `templates/index.html`) to display these correlated incidents.
--   **AWS CloudTrail Monitoring:** A new `aws_cloudtrail_monitor.py` module has been added to monitor AWS CloudTrail logs. This feature detects suspicious API calls, such as security group modifications and IAM user creation, and sends alerts to the central aggregator. To enable this feature, you must configure your AWS credentials (see the "Configuring and Starting the Central Aggregator Services" section).
--   **User and Entity Behavior Analytics (UEBA):** A new `ueba_monitor.py` module has been added to perform behavior analytics. This feature profiles user and device activity, establishes baselines for normal behavior, and detects anomalies such as logins at unusual times or access to new sensitive files. The UEBA monitor is integrated with the aggregator to analyze alerts in real-time.
+-	**Kafka Integration:** The system now uses Apache Kafka as a central message bus for communication between services. This provides a scalable and resilient architecture for handling high volumes of data.
+-	**DNS Analysis:** A new `dns_analyzer.py` module has been added to analyze DNS queries for suspicious activity. This includes checks for unusually long query names (a potential sign of DNS tunneling) and queries to known malicious domains.
+-	**Suspicious Email Detection:** A new `email_scanner.py` module has been added to connect to Microsoft Exchange servers via Exchange Web Services (EWS). The scanner fetches unread emails and analyzes them for suspicious headers, content, and attachments. Alerts are sent to the central aggregator. To enable this feature, you must set the `EXCHANGE_USERNAME`, `EXCHANGE_PASSWORD`, and `EXCHANGE_SERVER` environment variables.
+-	**Golden/Silver Ticket Detection:** Initial Suricata rules (`rules/ad_attacks.rules`) have been added for Golden Ticket (SID 2000001) and Silver Ticket (SID 2000002) detection. The `suricata.yaml` has been updated to include this new rule file. Additionally, `suricata_alert_parser.py` has been modified to specifically handle these new alert SIDs, including a placeholder function `handle_ad_attack_alert` for future advanced processing. **Note:** The current rules are basic placeholders and will require further refinement for accurate detection and to minimize false positives.
+-	**Modularized Dockerfiles:** Each core service (aggregator, dashboard, rule_updater, suricata) now has its own dedicated Dockerfile, leading to smaller, more efficient images and clearer separation of concerns.
+-	**Refactored Docker Compose:** The `docker-compose.yml` has been updated to reflect the new modular structure, making it easier to manage and deploy individual services.
+-	**Improved Testability:** Python import paths in test files have been corrected to align with the new directory structure, ensuring tests can be run reliably. Additionally, new test files have been added for the DNS analyzer and email scanner to ensure their functionality.
+-	**Enhanced Error Handling, Logging, and Type Hinting:** Core Python modules (`aggregator.py`, `database.py`, `notifications.py`, `blocker.py`, `enrichment.py`, `detector.py`, `ransomware_detector.py`, `dashboard.py`, `suricata_alert_parser.py`, `pcap_monitor.py`) have been refactored for improved robustness, debuggability, and code quality.
+-	**Alert Correlation and Prioritization:** A new `alert_correlator.py` module has been introduced to group related alerts into higher-fidelity incidents, with database schema updates (`database.py`) and dashboard integration (`dashboard/dashboard.py`, `templates/index.html`) to display these correlated incidents.
+-	**AWS CloudTrail Monitoring:** A new `aws_cloudtrail_monitor.py` module has been added to monitor AWS CloudTrail logs. This feature detects suspicious API calls, such as security group modifications and IAM user creation, and sends alerts to the central aggregator. To enable this feature, you must configure your AWS credentials (see the "Configuring and Starting the Central Aggregator Services" section).
+-	**User and Entity Behavior Analytics (UEBA):** A new `ueba_monitor.py` module has been added to perform behavior analytics. This feature profiles user and device activity, establishes baselines for normal behavior, and detects anomalies such as logins at unusual times or access to new sensitive files. The UEBA monitor is integrated with the aggregator to analyze alerts in real-time.
 
 ---
 
@@ -64,8 +72,8 @@ This version introduces significant improvements in project structure and mainta
 To run the complete Distributed Smart IDS, follow these steps:
 
 ### 1. Prerequisites
--   [Docker Desktop](https://www.docker.com/products/docker-desktop)
--   Python 3.8+
+-	[Docker Desktop](https://www.docker.com/products/docker-desktop)
+-	Python 3.8+
 
 ### 2. Clone the Repository
 ```bash
@@ -120,9 +128,9 @@ cd ..
 Deploy the sensor using the `docker run` command. You must configure it with environment variables to tell it its unique ID and where to send alerts.
 
 **Key Environment Variables:**
--   `SENSOR_ID`: A unique name for this sensor (e.g., `web-server-1`, `office-pi-01`).
--   `AGGREGATOR_URL`: The full URL to your central aggregator's alert endpoint (e.g., `http://<YOUR_AGGREGATOR_IP>:5000/api/alerts`).
--   `NETWORK_INTERFACE`: The network interface the sensor should monitor (e.g., `eth0`, `enp0s3`).
+-	`SENSOR_ID`: A unique name for this sensor (e.g., `web-server-1`, `office-pi-01`).
+-	`AGGREGATOR_URL`: The full URL to your central aggregator's alert endpoint (e.g., `http://<YOUR_AGGREGATOR_IP>:5000/api/alerts`).
+-	`NETWORK_INTERFACE`: The network interface the sensor should monitor (e.g., `eth0`, `enp0s3`).
 
 **Example `docker run` command:**
 ```bash
@@ -162,7 +170,7 @@ The emulator reads a list of attack scenarios from the `emulation_scenarios.json
 
 ### Running the Emulator
 
-1.  **Install Dependencies:**
+1.	**Install Dependencies:**
 
     Ensure you have the necessary dependencies installed, including `scapy`:
 
@@ -170,7 +178,7 @@ The emulator reads a list of attack scenarios from the `emulation_scenarios.json
     ./venv/bin/pip install -r requirements.txt
     ```
 
-2.  **Run the Emulator:**
+2.	**Run the Emulator:**
 
     Execute the `adversary_emulator.py` script with the `emulation_scenarios.json` file as an argument:
 
@@ -184,27 +192,27 @@ The emulator reads a list of attack scenarios from the `emulation_scenarios.json
 
 The emulator currently supports the following MITRE ATT&CK techniques:
 
--   **T1046:** Port Scan
--   **T1071.004:** DNS Tunneling
--   **T1190:** Log4j Exploit Attempt
--   **T1027:** Obfuscated File or Information
--   **T1571:** Command and Control: Non-Standard Port
--   **T1018:** Remote System Discovery (Ping Sweep)
--   **T1057:** Process Discovery
--   **T1110.001:** Brute Force (Password Guessing)
--   **T1219:** Remote Access Software
--   **T1078:** Valid Accounts
--   **T1562.001:** Disable Security Tools
--   **T1049:** System Network Connections Discovery
--   **T1110.003:** SMB Brute Force
--   **T1021.002:** Lateral Movement (PsExec)
--   **T1041:** Exfiltration Over HTTP
--   **T1003.001:** OS Credential Dumping: LSASS Memory
--   **T1059.001:** Command and Scripting Interpreter: PowerShell
--   **T1548.002:** Abuse Elevation Control Mechanism: Bypass User Account Control
--   **T1053.005:** Scheduled Task/Job: Scheduled Task
--   **T1486:** Data Encrypted for Impact
--   **T1070.004:** Indicator Removal on Host: File Deletion
+-	**T1046:** Port Scan
+-	**T1071.004:** DNS Tunneling
+-	**T1190:** Log4j Exploit Attempt
+-	**T1027:** Obfuscated File or Information
+-	**T1571:** Command and Control: Non-Standard Port
+-	**T1018:** Remote System Discovery (Ping Sweep)
+-	**T1057:** Process Discovery
+-	**T1110.001:** Brute Force (Password Guessing)
+-	**T1219:** Remote Access Software
+-	**T1078:** Valid Accounts
+-	**T1562.001:** Disable Security Tools
+-	**T1049:** System Network Connections Discovery
+-	**T1110.003:** SMB Brute Force
+-	**T1021.002:** Lateral Movement (PsExec)
+-	**T1041:** Exfiltration Over HTTP
+-	**T1003.001:** OS Credential Dumping: LSASS Memory
+-	**T1059.001:** Command and Scripting Interpreter: PowerShell
+-	**T1548.002:** Abuse Elevation Control Mechanism: Bypass User Account Control
+-	**T1053.005:** Scheduled Task/Job: Scheduled Task
+-	**T1486:** Data Encrypted for Impact
+-	**T1070.004:** Indicator Removal on Host: File Deletion
 
 ### Customizing Scenarios
 
@@ -223,8 +231,8 @@ You can easily add or modify attack scenarios by editing the `emulation_scenario
 
 To add a new attack technique, you will need to:
 
-1.  Add a new function to `adversary_emulator.py` that implements the desired attack.
-2.  Add a new scenario to `emulation_scenarios.json` that calls the new function.
+1.	Add a new function to `adversary_emulator.py` that implements the desired attack.
+2.	Add a new scenario to `emulation_scenarios.json` that calls the new function.
 
 ## Enhanced Ransomware Detection
 
@@ -234,10 +242,10 @@ This system includes an advanced behavior-based ransomware detection engine that
 
 The `ransomware_detector.py` module uses **Scapy** to perform deep packet inspection of SMB (Server Message Block) traffic, moving beyond simple payload inspection to accurately parse and analyze SMB commands. This allows for more sophisticated and reliable detection based on the following features:
 
--   **High-Volume File Operations:** Detects a sudden surge in file creation, write, read, rename, or delete operations from a single source IP, which is a common indicator of automated encryption activity.
--   **Filename Entropy Analysis:** Calculates the Shannon entropy of filenames in `CREATE` requests. Ransomware often generates random, high-entropy filenames (e.g., `kHj8dKj9LpW3qXo7.txt`) after encrypting files. The system flags activity with an average filename entropy exceeding a predefined threshold.
--   **Suspicious File Extension Monitoring:** Tracks file extensions in `CREATE` and `RENAME` operations. An alert is triggered if a significant number of files with known ransomware extensions (e.g., `.locked`, `.crypto`, `.encrypted`) are detected.
--   **Imbalanced Read/Write Ratio:** Monitors the ratio of file read to write operations. A high number of writes without corresponding reads can indicate that files are being overwritten with encrypted data.
+-	**High-Volume File Operations:** Detects a sudden surge in file creation, write, read, rename, or delete operations from a single source IP, which is a common indicator of automated encryption activity.
+-	**Filename Entropy Analysis:** Calculates the Shannon entropy of filenames in `CREATE` requests. Ransomware often generates random, high-entropy filenames (e.g., `kHj8dKj9LpW3qXo7.txt`) after encrypting files. The system flags activity with an average filename entropy exceeding a predefined threshold.
+-	**Suspicious File Extension Monitoring:** Tracks file extensions in `CREATE` and `RENAME` operations. An alert is triggered if a significant number of files with known ransomware extensions (e.g., `.locked`, `.crypto`, `.encrypted`) are detected.
+-	**Imbalanced Read/Write Ratio:** Monitors the ratio of file read to write operations. A high number of writes without corresponding reads can indicate that files are being overwritten with encrypted data.
 
 When this combination of suspicious activities is detected, an alert with `cve="RANSOMWARE-BEHAVIOR-ENHANCED"` is generated and sent to the aggregator for immediate attention.
 
@@ -245,7 +253,7 @@ When this combination of suspicious activities is detected, an alert with `cve="
 
 To validate the effectiveness of the enhanced ransomware detection, you can use the provided unit tests or create custom Scapy scripts to simulate ransomware-like behavior.
 
-1.  **Run the Unit Tests:**
+1.	**Run the Unit Tests:**
 
     The `tests/test_ransomware_detector.py` file contains a suite of tests that simulate various ransomware scenarios, including high-entropy filenames, suspicious extensions, and imbalanced read/write ratios. These tests mock the alerting function to avoid generating network traffic.
 
@@ -253,7 +261,7 @@ To validate the effectiveness of the enhanced ransomware detection, you can use 
     PYTHONPATH=. ./venv/bin/pytest tests/test_ransomware_detector.py
     ```
 
-2.  **Simulate with a Custom Scapy Script:**
+2.	**Simulate with a Custom Scapy Script:**
 
     You can create a Python script using Scapy to generate real network traffic that mimics a ransomware attack. This allows you to test the full detection pipeline, from the sensor to the dashboard.
 
@@ -281,7 +289,8 @@ To validate the effectiveness of the enhanced ransomware detection, you can use 
     print("Enhanced ransomware simulation traffic sent.")
     ```
 
-3.  **Verify Detection:**
+3.	**Verify Detection:**
 
-    -   Check the logs of the `aggregator` service for alerts related to "Ransomware-like behavior detected."
-    -   Access the dashboard to see if new ransomware alerts with the `cve="RANSOMWARE-BEHAVIOR-ENHANCED"` are displayed.
+    -	Check the logs of the `aggregator` service for alerts related to "Ransomware-like behavior detected."
+    -	Access the dashboard to see if new ransomware alerts with the `cve="RANSOMWARE-BEHAVIOR-ENHANCED"` are displayed.
+

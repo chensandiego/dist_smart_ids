@@ -14,3 +14,4 @@ scapy
 exchangelib
 boto3
 pymisp
+kafka-python

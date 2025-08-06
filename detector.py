@@ -1,4 +1,4 @@
-from scapy.all import IP
+from scapy.all import IP, Ether
 from sklearn.ensemble import IsolationForest
 from sklearn.cluster import DBSCAN
 from joblib import load
@@ -9,12 +9,15 @@ import logging
 from typing import Dict, Any, Optional
 import threading
 
-from config import RABBITMQ_HOST, RABBITMQ_QUEUE
+from kafka import KafkaConsumer
+from kafka.errors import KafkaError
+
+from config import (
+    RABBITMQ_HOST, RABBITMQ_QUEUE, KAFKA_HOST, KAFKA_TOPIC_PCAP,
+    KAFKA_TOPIC_DNS_ALERTS, KAFKA_TOPIC_RANSOMWARE_ALERTS, KAFKA_TOPIC_EMAIL_ALERTS, KAFKA_TOPIC_SURICATA
+)
 from enrichment import get_whois_info, get_abuseipdb_info
 from behavior_model import behavior_model
-from ransomware_detector import monitor_smb_activity, detect_ransomware_behavior
-from email_scanner import scan_exchange_inbox
-from dns_analyzer import analyze_dns_packet
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -38,24 +41,6 @@ recent_features = []
 MAX_RECENT_FEATURES = 1000 # Adjust as needed
 
 SIMILARITY_THRESHOLD: float = 0.5
-
-# --- Ransomware Detection ---
-LAST_RANSOMWARE_CHECK: float = time.time()
-CHECK_INTERVAL: int = 10 # seconds
-
-# --- Email Scanning ---
-EMAIL_SCAN_INTERVAL: int = 300 # 5 minutes
-
-def run_email_scan_periodically():
-    """Runs the email scanner in a separate thread at a regular interval."""
-    while True:
-        logging.info("Starting periodic email scan...")
-        try:
-            scan_exchange_inbox()
-        except Exception as e:
-            logging.error(f"An error occurred during the email scan: {e}", exc_info=True)
-        logging.info(f"Email scan finished. Waiting {EMAIL_SCAN_INTERVAL} seconds for the next scan.")
-        time.sleep(EMAIL_SCAN_INTERVAL)
 
 # --- Alerting ---
 def raise_alert(alert_details: Dict[str, Any]) -> None:
@@ -90,26 +75,8 @@ def extract_features(pkt: Any) -> list[Any]:
     return [0, 0, 0, 0]
 
 def packet_handler(pkt: Any) -> None:
-    global LAST_RANSOMWARE_CHECK
-
     if IP not in pkt:
         return
-
-    # DNS analysis
-    dns_alerts = analyze_dns_packet(pkt)
-    for alert in dns_alerts:
-        raise_alert(alert)
-
-    # Pass packet to ransomware detector
-    monitor_smb_activity(pkt)
-
-    # Periodically check for ransomware behavior
-    current_time: float = time.time()
-    if current_time - LAST_RANSOMWARE_CHECK > CHECK_INTERVAL:
-        ransomware_alerts = detect_ransomware_behavior()
-        for alert in ransomware_alerts:
-            raise_alert(alert)
-        LAST_RANSOMWARE_CHECK = current_time
 
     # Behavior-based detection
     packet_content: str = bytes(pkt).decode(errors='ignore')
@@ -146,13 +113,11 @@ def packet_handler(pkt: Any) -> None:
     if len(recent_features) > MAX_RECENT_FEATURES:
         recent_features.pop(0) # Keep the list size bounded
 
-    # Periodically re-fit DBSCAN and predict
-    if len(recent_features) >= DBSCAN_MIN_SAMPLES: # Ensure enough samples for DBSCAN
+    if len(recent_features) >= DBSCAN_MIN_SAMPLES:
         try:
             dbscan_model.fit(recent_features)
-            # Predict for the latest packet
             prediction_dbscan = dbscan_model.fit_predict([features])
-            if prediction_dbscan[0] == -1: # -1 indicates noise point (anomaly)
+            if prediction_dbscan[0] == -1:
                 alert = {
                     "time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                     "src": pkt[IP].src,
@@ -164,16 +129,56 @@ def packet_handler(pkt: Any) -> None:
         except Exception as e:
             logging.error(f"Error fitting or predicting with DBSCAN: {e}", exc_info=True)
 
+def create_kafka_consumer(topic: str, group_id: str):
+    try:
+        consumer = KafkaConsumer(
+            topic,
+            bootstrap_servers=KAFKA_HOST,
+            auto_offset_reset='earliest',
+            enable_auto_commit=True,
+            group_id=group_id,
+            value_deserializer=lambda x: json.loads(x.decode('utf-8'))
+        )
+        return consumer
+    except KafkaError as e:
+        logging.error(f"Error creating Kafka consumer for topic {topic}: {e}")
+        return None
+
+def consume_alerts(topic: str, group_id: str):
+    consumer = create_kafka_consumer(topic, group_id)
+    if not consumer:
+        return
+
+    logging.info(f"[*] Starting Kafka consumer for topic {topic}")
+    for message in consumer:
+        alert = message.value
+        logging.info(f"Received alert from {topic}: {alert.get('reason', 'N/A')}")
+        raise_alert(alert)
+
 # --- Main Execution ---
 if __name__ == "__main__":
-    # Start the email scanner in a background thread
-    email_thread = threading.Thread(target=run_email_scan_periodically, daemon=True)
-    email_thread.start()
-    logging.info("Email scanner thread started.")
+    # Start consumers in background threads
+    topics = {
+        KAFKA_TOPIC_SURICATA: "detector-suricata-group",
+        KAFKA_TOPIC_DNS_ALERTS: "detector-dns-group",
+        KAFKA_TOPIC_RANSOMWARE_ALERTS: "detector-ransomware-group",
+        KAFKA_TOPIC_EMAIL_ALERTS: "detector-email-group"
+    }
 
-    # The main thread will continue with its existing tasks (e.g., packet sniffing)
-    # For demonstration, we'll just keep the main thread alive.
-    # In your actual application, you would start your packet sniffing loop here.
+    for topic, group_id in topics.items():
+        thread = threading.Thread(target=consume_alerts, args=(topic, group_id), daemon=True)
+        thread.start()
+
+    pcap_consumer = create_kafka_consumer(KAFKA_TOPIC_PCAP, "detector-pcap-group")
+    if not pcap_consumer:
+        logging.error("Could not create Kafka consumer for PCAP data. Exiting.")
+    else:
+        logging.info(f"[*] Starting Kafka consumer for topic {KAFKA_TOPIC_PCAP}")
+        for message in pcap_consumer:
+            packet_data = message.value
+            pkt = Ether(bytes.fromhex(packet_data['packet']))
+            packet_handler(pkt)
+
     try:
         while True:
             time.sleep(1)

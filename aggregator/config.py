@@ -12,6 +12,10 @@ DB_PORT = os.environ.get("DB_PORT", "5432")
 RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "localhost")
 RABBITMQ_QUEUE = "alerts_queue"
 
+# Kafka settings
+KAFKA_HOST = os.environ.get("KAFKA_HOST", "localhost:9092")
+KAFKA_TOPIC_SURICATA = "suricata_alerts"
+
 # Rule settings
 SURICATA_RULES = "rules/suricata.rules"
 

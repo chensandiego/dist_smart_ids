@@ -1,12 +1,14 @@
 import json
 import time
-import pika
 import re
 import os
 import logging
 from typing import Dict, Any, Optional, Iterator
 
-from config import RABBITMQ_HOST, RABBITMQ_QUEUE
+from kafka import KafkaProducer
+from kafka.errors import KafkaError
+
+from config import KAFKA_HOST, KAFKA_TOPIC_SURICATA
 from enrichment import get_abuseipdb_info, get_geolocation, get_service_name, get_passive_dns_info
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,28 +23,26 @@ def extract_cve_info(signature: str) -> Optional[str]:
         return match.group(1)
     return None
 
-def send_alert_to_rabbitmq(alert_data: Dict[str, Any]) -> None:
-    connection = None
+def create_kafka_producer():
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_HOST))
-        channel = connection.channel()
-        channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
-        channel.basic_publish(
-            exchange='',
-            routing_key=RABBITMQ_QUEUE,
-            body=json.dumps(alert_data),
-            properties=pika.BasicProperties(
-                delivery_mode=2,  # Make message persistent
-            )
+        producer = KafkaProducer(
+            bootstrap_servers=KAFKA_HOST,
+            value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
-        logging.info(f"[Suricata Alert] Published to {RABBITMQ_QUEUE}: {alert_data.get('alert', {}).get('signature', 'N/A')}")
-    except pika.exceptions.AMQPError as e:
-        logging.error(f"RabbitMQ error while publishing Suricata alert: {e}")
+        return producer
+    except KafkaError as e:
+        logging.error(f"Error creating Kafka producer: {e}")
+        return None
+
+def send_alert_to_kafka(producer: KafkaProducer, topic: str, alert_data: Dict[str, Any]) -> None:
+    try:
+        producer.send(topic, value=alert_data)
+        producer.flush()
+        logging.info(f"[Suricata Alert] Published to {topic}: {alert_data.get('alert', {}).get('signature', 'N/A')}")
+    except KafkaError as e:
+        logging.error(f"Kafka error while publishing Suricata alert: {e}")
     except Exception as e:
-        logging.error(f"Unexpected error in send_alert_to_rabbitmq: {e}", exc_info=True)
-    finally:
-        if connection and connection.is_open:
-            connection.close()
+        logging.error(f"Unexpected error in send_alert_to_kafka: {e}", exc_info=True)
 
 def tail_file(filepath: str) -> Iterator[str]:
     if not os.path.exists(filepath):
@@ -63,6 +63,11 @@ def main() -> None:
     EVE_JSON_PATH: str = "/var/log/suricata/eve.json"
     logging.info(f"[*] Starting Suricata EVE JSON parser, tailing {EVE_JSON_PATH}")
     
+    producer = create_kafka_producer()
+    if not producer:
+        logging.error("Could not create Kafka producer. Exiting.")
+        return
+
     for line in tail_file(EVE_JSON_PATH):
         try:
             event: Dict[str, Any] = json.loads(line.strip())
@@ -93,7 +98,7 @@ def main() -> None:
                 if sid in [2000001, 2000002]:  # Golden Ticket or Silver Ticket SIDs
                     handle_ad_attack_alert(event)
                 
-                send_alert_to_rabbitmq(event)
+                send_alert_to_kafka(producer, KAFKA_TOPIC_SURICATA, event)
         except json.JSONDecodeError as e:
             logging.error(f"Error decoding JSON from Suricata EVE log: {e} - Line: {line.strip()}")
         except Exception as e:
